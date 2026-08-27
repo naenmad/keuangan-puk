@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Keuangan PUK - Dashboard & Input Form</title>
+    <meta name="description" content="Dashboard & Form Input Laporan Keuangan PUK PT SAI - Neraca bulanan dinamis dan visualisasi interaktif">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: #1a2035;
+            --bg-card-hover: #1f2847;
+            --border-color: rgba(99, 128, 255, 0.12);
+            --border-glow: rgba(99, 128, 255, 0.3);
+            --text-primary: #f0f2f8;
+            --text-secondary: #8b95b0;
+            --text-muted: #5a6480;
+            --accent-blue: #6380ff;
+            --accent-cyan: #22d3ee;
+            --accent-green: #34d399;
+            --accent-red: #f87171;
+            --accent-amber: #fbbf24;
+            --accent-purple: #a78bfa;
+            --gradient-blue: linear-gradient(135deg, #6380ff, #22d3ee);
+            --gradient-green: linear-gradient(135deg, #34d399, #22d3ee);
+            --gradient-amber: linear-gradient(135deg, #fbbf24, #f59e0b);
+            --shadow-card: 0 4px 24px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.2);
+            --shadow-glow: 0 0 30px rgba(99, 128, 255, 0.15);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 24px 32px 60px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--gradient-blue);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 800;
+            box-shadow: 0 4px 16px rgba(99, 128, 255, 0.3);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: var(--gradient-blue);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .header .subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: var(--radius-md);
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--gradient-blue);
+            color: white;
+            box-shadow: 0 4px 14px rgba(99, 128, 255, 0.35);
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(99, 128, 255, 0.5);
+        }
+
+        .btn-success {
+            background: var(--gradient-green);
+            color: #064e3b;
+            font-weight: 700;
+            box-shadow: 0 4px 14px rgba(52, 211, 153, 0.3);
+        }
+        .btn-success:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(52, 211, 153, 0.45);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        .btn-secondary:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-glow);
+        }
+
+        .year-tabs {
+            display: flex;
+            gap: 6px;
+            background: var(--bg-secondary);
+            padding: 4px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+
+        .year-tab {
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .year-tab:hover {
+            color: var(--text-primary);
+            background: rgba(99, 128, 255, 0.08);
+        }
+
+        .year-tab.active {
+            background: var(--accent-blue);
+            color: white;
+            box-shadow: 0 2px 10px rgba(99, 128, 255, 0.4);
+        }
+
+        /* Input Form Container (Collapsible or Card) */
+        .form-section {
+            background: linear-gradient(180deg, #182038 0%, #13192c 100%);
+            border: 1px solid rgba(99, 128, 255, 0.25);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            margin-bottom: 32px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .form-section::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: var(--gradient-amber);
+        }
+
+        .form-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .form-title {
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #fef08a;
+        }
+
+        .form-grid-top {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .form-control {
+            background: #0d1222;
+            border: 1px solid rgba(255,255,255,0.12);
+            color: var(--text-primary);
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-family: 'Inter', sans-serif;
+            font-size: 13.5px;
+            transition: all 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(99, 128, 255, 0.2);
+            background: #11182c;
+        }
+
+        .form-control.money-input {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            color: var(--accent-green);
+        }
+
+        /* Expense Table Form */
+        .expense-table-form {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+        }
+
+        .expense-table-form th {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            padding: 10px 12px;
+            text-align: left;
+            background: rgba(0,0,0,0.2);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .expense-table-form td {
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+
+        .btn-remove-row {
+            background: rgba(248, 113, 113, 0.15);
+            color: var(--accent-red);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .btn-remove-row:hover {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        .btn-add-row {
+            background: rgba(99, 128, 255, 0.12);
+            color: var(--accent-blue);
+            border: 1px dashed rgba(99, 128, 255, 0.35);
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-add-row:hover {
+            background: rgba(99, 128, 255, 0.22);
+            border-color: var(--accent-blue);
+        }
+
+        /* Live Preview Cards */
+        .live-preview-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+            padding: 16px;
+            background: rgba(0,0,0,0.25);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .live-preview-card {
+            text-align: center;
+        }
+
+        .live-preview-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 4px;
+        }
+
+        .live-preview-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .summary-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 22px 24px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .summary-card:hover {
+            border-color: var(--border-glow);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+        }
+
+        .summary-card:nth-child(1)::before { background: var(--gradient-blue); }
+        .summary-card:nth-child(2)::before { background: var(--gradient-green); }
+        .summary-card:nth-child(3)::before { background: linear-gradient(135deg, #f87171, #fbbf24); }
+        .summary-card:nth-child(4)::before { background: linear-gradient(135deg, #a78bfa, #f472b6); }
+
+        .summary-card .card-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .summary-card .card-value {
+            font-size: 22px;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: -0.5px;
+        }
+
+        .summary-card:nth-child(1) .card-value { color: var(--accent-blue); }
+        .summary-card:nth-child(2) .card-value { color: var(--accent-green); }
+        .summary-card:nth-child(3) .card-value { color: var(--accent-red); }
+        .summary-card:nth-child(4) .card-value { color: var(--accent-purple); }
+
+        .summary-card .card-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        /* Charts Section */
+        .charts-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .chart-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .chart-card:hover {
+            border-color: var(--border-glow);
+        }
+
+        .chart-card h3 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text-primary);
+        }
+
+        .chart-card .chart-subtitle {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .chart-wrapper { position: relative; height: 300px; }
+
+        /* Table Section */
+        .table-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            margin-bottom: 28px;
+        }
+
+        .table-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .table-header h3 { font-size: 15px; font-weight: 600; }
+
+        .badge {
+            font-size: 11px;
+            background: rgba(99, 128, 255, 0.15);
+            color: var(--accent-blue);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            padding: 14px 20px;
+            text-align: left;
+            background: rgba(0,0,0,0.15);
+            border-bottom: 1px solid var(--border-color);
+        }
+        thead th:not(:first-child) { text-align: right; }
+        tbody td {
+            padding: 14px 20px;
+            font-size: 13px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+        tbody td:not(:first-child) {
+            text-align: right;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12.5px;
+        }
+        tbody tr:hover td { background: rgba(99, 128, 255, 0.04); }
+
+        .amount-positive { color: var(--accent-green); }
+        .amount-negative { color: var(--accent-red); }
+        .amount-neutral { color: var(--text-primary); }
+
+        .month-cell { display: flex; align-items: center; gap: 10px; }
+        .month-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .month-dot.positive { background: var(--accent-green); box-shadow: 0 0 8px rgba(52, 211, 153, 0.4); }
+        .month-dot.negative { background: var(--accent-red); box-shadow: 0 0 8px rgba(248, 113, 113, 0.4); }
+
+        /* Notification */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #10b981;
+            color: white;
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 999;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+
+        @media (max-width: 1024px) {
+            .summary-grid { grid-template-columns: repeat(2, 1fr); }
+            .form-grid-top { grid-template-columns: repeat(2, 1fr); }
+            .charts-section { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 640px) {
+            .app-container { padding: 16px; }
+            .summary-grid { grid-template-columns: 1fr; }
+            .form-grid-top { grid-template-columns: 1fr; }
+            .header { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <div class="logo-icon">₹</div>
+                <div>
+                    <h1>Laporan Keuangan PUK PT SAI</h1>
+                    <div class="subtitle">Dashboard Dinamis & Form Input Transaksi Otomatis</div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="toggleForm()">📝 Buka/Tutup Form Input</button>
+                <button class="btn btn-success" onclick="exportToExcel()">📥 Unduh Excel (.xlsx)</button>
+                <div class="year-tabs" id="yearTabs">
+                    <button class="year-tab active" data-year="all" onclick="filterYear('all')">Semua</button>
+                    <button class="year-tab" data-year="2023" onclick="filterYear('2023')">2023</button>
+                    <button class="year-tab" data-year="2024" onclick="filterYear('2024')">2024</button>
+                    <button class="year-tab" data-year="2025" onclick="filterYear('2025')">2025</button>
+                    <button class="year-tab" data-year="2026" onclick="filterYear('2026')">2026</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- FORM INPUT SECTION -->
+        <section class="form-section" id="formSection">
+            <div class="form-header">
+                <div class="form-title">
+                    <span>📝 FORM INPUT TRANSAKSI BULANAN</span>
+                </div>
+                <span style="font-size: 12px; color: var(--text-muted);">Hasil otomatis menghitung & menyambung ke data laporan</span>
+            </div>
+
+            <div class="form-grid-top">
+                <div class="form-group">
+                    <label class="form-label">Bulan</label>
+                    <select class="form-control" id="inputMonth" onchange="autoFillSaldoAwal()">
+                        <option value="Januari">Januari</option>
+                        <option value="Februari">Februari</option>
+                        <option value="Maret">Maret</option>
+                        <option value="April">April</option>
+                        <option value="Mei">Mei</option>
+                        <option value="Juni">Juni</option>
+                        <option value="Juli">Juli</option>
+                        <option value="Agustus">Agustus</option>
+                        <option value="September" selected>September</option>
+                        <option value="Oktober">Oktober</option>
+                        <option value="November">November</option>
+                        <option value="Desember">Desember</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tahun</label>
+                    <input type="number" class="form-control" id="inputYear" value="2026" onchange="autoFillSaldoAwal()">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Saldo Awal (Otomatis)</label>
+                    <input type="number" class="form-control money-input" id="inputSaldoAwal" value="31322000" oninput="calculateLivePreview()">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Pemasukan (Dana COS)</label>
+                    <input type="number" class="form-control money-input" id="inputPemasukan" value="20250000" oninput="calculateLivePreview()">
+                </div>
+            </div>
+
+            <label class="form-label" style="display:block; margin-bottom: 8px;">Daftar Item Pengeluaran:</label>
+            <table class="expense-table-form">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">No</th>
+                        <th>Nama Pengeluaran / Keterangan</th>
+                        <th style="width: 240px;">Nominal (Rp)</th>
+                        <th style="width: 50px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="expenseRowsContainer">
+                    <!-- Dynamic Rows -->
+                </tbody>
+            </table>
+
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <button type="button" class="btn-add-row" onclick="addExpenseRow()">➕ Tambah Baris Pengeluaran</button>
+                <div style="font-size: 13px; color: var(--text-secondary);">
+                    Total Pengeluaran: <strong id="liveTotalExp" style="color: var(--accent-red); font-family: 'JetBrains Mono'; font-size: 15px;">Rp 0</strong>
+                </div>
+            </div>
+
+            <!-- Live Calculation Preview -->
+            <div class="live-preview-grid">
+                <div class="live-preview-card">
+                    <div class="live-preview-label">Saldo Awal + Pemasukan</div>
+                    <div class="live-preview-value" id="prevTotalMasuk" style="color: var(--accent-blue);">Rp 0</div>
+                </div>
+                <div class="live-preview-card">
+                    <div class="live-preview-label">Surplus / Defisit Bulan Ini</div>
+                    <div class="live-preview-value" id="prevSurplus" style="color: var(--accent-green);">Rp 0</div>
+                </div>
+                <div class="live-preview-card">
+                    <div class="live-preview-label">Estimasi Saldo Akhir</div>
+                    <div class="live-preview-value" id="prevSaldoAkhir" style="color: var(--accent-cyan);">Rp 0</div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 16px;">
+                <button type="button" class="btn btn-secondary" onclick="resetForm()">Reset Form</button>
+                <button type="button" class="btn btn-primary" onclick="saveTransaction()">💾 Simpan & Update Laporan</button>
+            </div>
+        </section>
+
+        <!-- Summary Cards -->
+        <div class="summary-grid" id="summaryCards"></div>
+
+        <!-- Main Chart -->
+        <div class="charts-section">
+            <div class="chart-card">
+                <h3>Tren Keuangan Bulanan</h3>
+                <p class="chart-subtitle">Pemasukan, pengeluaran, dan saldo akhir per bulan</p>
+                <div class="chart-wrapper">
+                    <canvas id="mainChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>Komposisi Pengeluaran</h3>
+                <p class="chart-subtitle">Kategori pengeluaran terbesar</p>
+                <div class="chart-wrapper">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Table -->
+        <div class="table-section">
+            <div class="table-header">
+                <h3>📊 Ringkasan Bulanan (Real-Time)</h3>
+                <span class="badge" id="tableBadge">42 Bulan</span>
+            </div>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Bulan</th>
+                            <th>Saldo Awal</th>
+                            <th>Pemasukan</th>
+                            <th>Pengeluaran</th>
+                            <th>Saldo Akhir</th>
+                            <th>Surplus/Defisit</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">Data berhasil disimpan!</div>
+
+    <script>
+    // ===== MASTER FINANCIAL DATA =====
+    let financialData = [
+        {
+            month: "Maret", year: 2023, saldoAwal: 6738000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka cita dan Duka cita", amount: 300000 },
+                { name: "Akomodasi aksi DPR RI (tolak perpu cipta kerja)", amount: 1500000 }
+            ],
+            saldoAkhir: 10138000
+        },
+        {
+            month: "April", year: 2023, saldoAwal: 10138000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka cita dan Duka cita", amount: 300000 },
+                { name: "Service rutin mobil", amount: 1500000 }
+            ],
+            saldoAkhir: 13538000
+        },
+        {
+            month: "Mei", year: 2023, saldoAwal: 13538000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka cita dan Duka cita", amount: 300000 },
+                { name: "Akomodasi May Day", amount: 2000000 },
+                { name: "Pembelian kaos May Day dan spanduk", amount: 600000 }
+            ],
+            saldoAkhir: 15838000
+        },
+        {
+            month: "Juni", year: 2023, saldoAwal: 15838000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka cita dan Duka cita", amount: 300000 },
+                { name: "Pajak mobil", amount: 3900000 }
+            ],
+            saldoAkhir: 16838000
+        },
+        {
+            month: "Juli", year: 2023, saldoAwal: 16838000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka cita dan Duka cita", amount: 300000 },
+                { name: "Akomodasi aksi PTUN Bandung", amount: 2000000 }
+            ],
+            saldoAkhir: 19738000
+        },
+        {
+            month: "Agustus", year: 2023, saldoAwal: 19738000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka cita dan Duka cita", amount: 300000 },
+                { name: "Biaya daftar futsal DPC CUP", amount: 300000 },
+                { name: "Akomodasi futsal DPC CUP", amount: 2000000 },
+                { name: "Akomodasi pengawalan sidang JR di MK", amount: 1000000 }
+            ],
+            saldoAkhir: 21338000
+        },
+        {
+            month: "September", year: 2023, saldoAwal: 21338000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka cita dan Duka cita", amount: 300000 },
+                { name: "Akomodasi Aksi KEMNAKER (cabut UU Omnibuslaw)", amount: 1500000 }
+            ],
+            saldoAkhir: 24738000
+        },
+        {
+            month: "Oktober", year: 2023, saldoAwal: 24738000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka cita dan Duka cita", amount: 300000 },
+                { name: "Service Mobil PUK", amount: 1500000 },
+                { name: "Service dan cuci AC PUK", amount: 500000 }
+            ],
+            saldoAkhir: 27638000
+        },
+        {
+            month: "November", year: 2023, saldoAwal: 27638000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka cita dan Duka cita", amount: 300000 },
+                { name: "Ganti dua ban mobil PUK", amount: 1900000 }
+            ],
+            saldoAkhir: 30638000
+        },
+        {
+            month: "Desember", year: 2023, saldoAwal: 30638000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka cita dan Duka cita", amount: 300000 },
+                { name: "Akomodasi aksi upah 2024 PEMDA Karawang", amount: 1500000 },
+                { name: "Aksi KEMNAKER", amount: 2000000 }
+            ],
+            saldoAkhir: 32038000
+        },
+        // 2024
+        {
+            month: "Januari", year: 2024, saldoAwal: 32038000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka cita dan Duka cita", amount: 300000 },
+                { name: "Aksi DPRD Jabar", amount: 1500000 },
+                { name: "Akomodasi Bapor longmarch Bandung-Jakarta", amount: 2000000 }
+            ],
+            saldoAkhir: 33438000
+        },
+        {
+            month: "Februari", year: 2024, saldoAwal: 33438000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka Cita dan Duka Cita", amount: 300000 },
+                { name: "Service mobil PUK", amount: 1500000 },
+                { name: "Akomodasi Aksi PEMPROV JABAR", amount: 1500000 }
+            ],
+            saldoAkhir: 35338000
+        },
+        {
+            month: "Maret", year: 2024, saldoAwal: 35338000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka Cita dan Duka Cita", amount: 300000 },
+                { name: "Akomodasi aksi DPR RI (cabut omnibuslaw)", amount: 2000000 },
+                { name: "Sumbangan BUKBER karyawan PT SAI", amount: 1000000 },
+                { name: "Bukber pengurus dan DPC FSP LEM SPSI", amount: 300000 },
+                { name: "Bukber pengurus dan manajemen", amount: 2000000 }
+            ],
+            saldoAkhir: 34938000
+        },
+        {
+            month: "April", year: 2024, saldoAwal: 34938000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Dana sosial suka cita dan duka cita", amount: 300000 },
+                { name: "THR DPC dan DPD FSP LEM SPSI", amount: 5000000 },
+                { name: "THR pengurus PUK PT SAI", amount: 4000000 },
+                { name: "Akomodasi pengantaran jenazah anggota ke Banyuwangi", amount: 2000000 }
+            ],
+            saldoAkhir: 28838000
+        },
+        {
+            month: "Mei", year: 2024, saldoAwal: 28838000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka Cita dan Duka Cita", amount: 300000 },
+                { name: "Akomodasi May Day", amount: 3000000 },
+                { name: "Beli kaos May Day", amount: 720000 },
+                { name: "Akomodasi menghadiri MUSNIK PUK TMMIN", amount: 1000000 },
+                { name: "Akomodasi RAKERCAB DPC", amount: 5000000 },
+                { name: "Service mobil", amount: 1500000 }
+            ],
+            saldoAkhir: 22518000
+        },
+        {
+            month: "Juni", year: 2024, saldoAwal: 22518000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka Cita dan Duka Cita", amount: 300000 },
+                { name: "Bayar pajak mobil PUK", amount: 4000000 },
+                { name: "Akomodasi aksi DPRD Karawang", amount: 1000000 },
+                { name: "Akomodasi aksi DPRD Bandung", amount: 2000000 },
+                { name: "Dana konsolidasi/perjuangan", amount: 5000000 }
+            ],
+            saldoAkhir: 15418000
+        },
+        {
+            month: "Juli", year: 2024, saldoAwal: 15418000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka Cita dan Duka Cita", amount: 300000 },
+                { name: "Pembelian aset laptop Advance", amount: 5400000 },
+                { name: "Akomodasi aksi Disnakertrans JABAR", amount: 2000000 }
+            ],
+            saldoAkhir: 12918000
+        },
+        {
+            month: "Agustus", year: 2024, saldoAwal: 12918000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka Cita dan Duka Cita", amount: 300000 },
+                { name: "Pembuatan kaos anggota 50 pcs", amount: 3000000 },
+                { name: "Akomodasi RAKORNAS BAPOR", amount: 2000000 }
+            ],
+            saldoAkhir: 12818000
+        },
+        {
+            month: "September", year: 2024, saldoAwal: 12818000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka Cita dan Duka Cita", amount: 300000 }
+            ],
+            saldoAkhir: 17718000
+        },
+        {
+            month: "Oktober", year: 2024, saldoAwal: 17718000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka Cita dan Duka Cita", amount: 300000 },
+                { name: "Dana pembangunan gedung DPD FSP LEM SPSI", amount: 2500000 }
+            ],
+            saldoAkhir: 20118000
+        },
+        {
+            month: "November", year: 2024, saldoAwal: 20118000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka Cita dan Duka Cita", amount: 300000 },
+                { name: "Servis Rutin Mobil PUK", amount: 1500000 },
+                { name: "Ganti ban mobil", amount: 2700000 }
+            ],
+            saldoAkhir: 20818000
+        },
+        {
+            month: "Desember", year: 2024, saldoAwal: 20818000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka Cita dan Duka Cita", amount: 300000 },
+                { name: "Ganti ban mobil", amount: 900000 },
+                { name: "Aksi PEMDA", amount: 1500000 },
+                { name: "Aksi PEMPROV", amount: 2000000 },
+                { name: "Servis printer PUK", amount: 303000 }
+            ],
+            saldoAkhir: 22015000
+        },
+        // 2025
+        {
+            month: "Januari", year: 2025, saldoAwal: 22015000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Sumbangan suka cita dan duka", amount: 300000 },
+                { name: "Kunjungan kerja DPC FSP LEM SPSI", amount: 500000 }
+            ],
+            saldoAkhir: 26415000
+        },
+        {
+            month: "Februari", year: 2025, saldoAwal: 26415000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Akomodasi HUT KSPSI Ke 52 - Transport", amount: 10000000 },
+                { name: "Akomodasi HUT KSPSI Ke 52 - Makan", amount: 1800000 },
+                { name: "Akomodasi BAPOR", amount: 1000000 },
+                { name: "Sumbangan suka cita dan duka", amount: 300000 }
+            ],
+            saldoAkhir: 18515000
+        },
+        {
+            month: "Maret", year: 2025, saldoAwal: 18515000, pemasukan: 18000000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Sumbangan suka cita dan duka", amount: 300000 },
+                { name: "Mutasi mobil operasional PUK", amount: 15000000 },
+                { name: "Bukber PUK dan Manajemen", amount: 3000000 }
+            ],
+            saldoAkhir: 5442000
+        },
+        {
+            month: "April", year: 2025, saldoAwal: 5442000, pemasukan: 20250000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 10125000 },
+                { name: "Agenda pertemuan Pleno", amount: 5000000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Pembuatan kaos anggota 50 pcs", amount: 3000000 },
+                { name: "Sumbangan suka cita dan duka", amount: 300000 }
+            ],
+            saldoAkhir: 3467000
+        },
+        {
+            month: "Mei", year: 2025, saldoAwal: 3467000, pemasukan: 20250000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 10125000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Sumbangan Duka dan suka Cita", amount: 300000 },
+                { name: "Akomodasi May Day", amount: 5000000 }
+            ],
+            saldoAkhir: 4492000
+        },
+        {
+            month: "Juni", year: 2025, saldoAwal: 4492000, pemasukan: 20250000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 10125000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Pembuatan Jersey futsal 15 pcs", amount: 1500000 },
+                { name: "Suka Cita dan Duka Cita", amount: 300000 },
+                { name: "Service mobil PUK", amount: 1000000 }
+            ],
+            saldoAkhir: 8017000
+        },
+        {
+            month: "Juli", year: 2025, saldoAwal: 8017000, pemasukan: 20250000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 10125000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka Cita dan Duka Cita", amount: 300000 },
+                { name: "Pajak Mobil PUK", amount: 4000000 }
+            ],
+            saldoAkhir: 10042000
+        },
+        {
+            month: "Agustus", year: 2025, saldoAwal: 10042000, pemasukan: 20250000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 10125000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka Cita dan Duka Cita", amount: 300000 },
+                { name: "Konsolidasi Pleno dan mancing", amount: 5000000 }
+            ],
+            saldoAkhir: 11067000
+        },
+        {
+            month: "September", year: 2025, saldoAwal: 11067000, pemasukan: 20250000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 10125000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka Cita dan Duka Cita", amount: 300000 }
+            ],
+            saldoAkhir: 17092000
+        },
+        {
+            month: "Oktober", year: 2025, saldoAwal: 17092000, pemasukan: 20250000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 10125000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka Cita dan Duka Cita", amount: 300000 }
+            ],
+            saldoAkhir: 23117000
+        },
+        {
+            month: "November", year: 2025, saldoAwal: 23117000, pemasukan: 20250000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 10125000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka Cita dan Duka Cita", amount: 300000 }
+            ],
+            saldoAkhir: 29142000
+        },
+        {
+            month: "Desember", year: 2025, saldoAwal: 29142000, pemasukan: 20250000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 10125000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka Cita dan Duka Cita", amount: 300000 },
+                { name: "Pemberian penghargaan karyawan absensi terbaik", amount: 3500000 },
+                { name: "Akomodasi dan biaya MUSCAB DPC FSP LEM SPSI", amount: 10850000 }
+            ],
+            saldoAkhir: 20817000
+        },
+        // 2026
+        {
+            month: "Januari", year: 2026, saldoAwal: 20817000, pemasukan: 20250000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 10125000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka Cita dan Duka Cita", amount: 300000 },
+                { name: "Akomodasi aksi upah 2026 Pemda Karawang", amount: 1000000 },
+                { name: "Akomodasi aksi Upah 2026 Bandung 2 kali", amount: 3200000 },
+                { name: "Dana konsolidasi gugatan upah 2026", amount: 4000000 }
+            ],
+            saldoAkhir: 18642000
+        },
+        {
+            month: "Februari", year: 2026, saldoAwal: 18642000, pemasukan: 20250000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 10125000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka Cita dan Duka Cita", amount: 300000 },
+                { name: "Konsolidasi Pleno dan mancing bersama", amount: 5000000 },
+                { name: "Sumbangan partisipasi Futsal anggota", amount: 600000 }
+            ],
+            saldoAkhir: 19067000
+        },
+        {
+            month: "Maret", year: 2026, saldoAwal: 19067000, pemasukan: 20250000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 10125000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka cita dan duka cita", amount: 300000 },
+                { name: "Penggantian laptop perusahaan", amount: 4000000 },
+                { name: "Perbaikan kaca mobil PUK", amount: 1600000 }
+            ],
+            saldoAkhir: 19492000
+        },
+        {
+            month: "April", year: 2026, saldoAwal: 19492000, pemasukan: 20250000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 10125000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka Cita dan Duka Cita", amount: 300000 }
+            ],
+            saldoAkhir: 25517000
+        },
+        {
+            month: "Mei", year: 2026, saldoAwal: 25517000, pemasukan: 20250000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 10125000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Suka cita dan duka cita", amount: 300000 },
+                { name: "Akomodasi transport dan makan May Day 2026", amount: 15870000 }
+            ],
+            saldoAkhir: 15672000
+        },
+        {
+            month: "Juni", year: 2026, saldoAwal: 15672000, pemasukan: 20250000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Setor COS TSCUF", amount: 300000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Dana suka cita dan duka cita", amount: 300000 },
+                { name: "Akomodasi pengawalan sidang PTUN Bandung", amount: 1000000 },
+                { name: "Pembelian stiker pintu sekretariat PUK", amount: 300000 }
+            ],
+            saldoAkhir: 21222000
+        },
+        {
+            month: "Juli", year: 2026, saldoAwal: 21222000, pemasukan: 20250000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Setor COS TSCUF", amount: 300000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Dana suka cita dan duka cita", amount: 300000 },
+                { name: "Pendaftaran Dialog Ketenagakerjaan", amount: 3000000 },
+                { name: "Akomodasi Dialog Ketenagakerjaan", amount: 1500000 },
+                { name: "Akomodasi RAKOR BAPOR", amount: 500000 }
+            ],
+            saldoAkhir: 26672000
+        },
+        {
+            month: "Agustus", year: 2026, saldoAwal: 26672000, pemasukan: 20250000,
+            expenses: [
+                { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+                { name: "Setor COS TSCUF", amount: 300000 },
+                { name: "Angsuran Mobil", amount: 3800000 },
+                { name: "Dana suka cita dan duka cita", amount: 300000 },
+                { name: "Pendaftaran futsal DPC CUP", amount: 200000 },
+                { name: "Akomodasi futsal DPC CUP", amount: 1000000 },
+                { name: "Pendaftaran acara mancing DPC", amount: 200000 },
+                { name: "Akomodasi acara mancing DPC", amount: 500000 }
+            ],
+            saldoAkhir: 31322000
+        }
+    ];
+
+    let currentYear = 'all';
+    let mainChart, categoryChart;
+
+    function formatRp(val) {
+        if (val === null || val === undefined || isNaN(val)) return '—';
+        return 'Rp ' + Number(val).toLocaleString('id-ID');
+    }
+
+    function totalExp(item) {
+        return item.expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    }
+
+    // ===== FORM MANAGEMENT =====
+    const defaultExpenseList = [
+        { name: "Setor COS dan akomodasi pengurus", amount: 9000000 },
+        { name: "Setor COS TSCUF", amount: 300000 },
+        { name: "Bayar angsuran mobil", amount: 3800000 },
+        { name: "Dana suka cita dan duka cita", amount: 300000 }
+    ];
+
+    function initFormRows() {
+        const container = document.getElementById('expenseRowsContainer');
+        container.innerHTML = '';
+        defaultExpenseList.forEach((exp, idx) => {
+            appendExpenseRow(idx + 1, exp.name, exp.amount);
+        });
+        calculateLivePreview();
+    }
+
+    function appendExpenseRow(num, name = '', amount = '') {
+        const container = document.getElementById('expenseRowsContainer');
+        const tr = document.createElement('tr');
+        tr.className = 'expense-row';
+        tr.innerHTML = `
+            <td style="color: var(--text-muted); font-size: 12px;" class="row-no">${num}</td>
+            <td><input type="text" class="form-control exp-name" value="${name}" placeholder="Contoh: Service Mobil / Akomodasi Aksi"></td>
+            <td><input type="number" class="form-control money-input exp-amount" value="${amount}" placeholder="0" oninput="calculateLivePreview()"></td>
+            <td style="text-align: center;"><button type="button" class="btn-remove-row" onclick="removeExpenseRow(this)">✕</button></td>
+        `;
+        container.appendChild(tr);
+    }
+
+    function addExpenseRow() {
+        const container = document.getElementById('expenseRowsContainer');
+        const count = container.querySelectorAll('.expense-row').length;
+        appendExpenseRow(count + 1, '', '');
+    }
+
+    function removeExpenseRow(btn) {
+        const row = btn.closest('tr');
+        row.remove();
+        // Re-index row numbers
+        document.querySelectorAll('#expenseRowsContainer .row-no').forEach((td, i) => {
+            td.textContent = i + 1;
+        });
+        calculateLivePreview();
+    }
+
+    function autoFillSaldoAwal() {
+        // Auto pick the latest ending balance
+        if (financialData.length > 0) {
+            const last = financialData[financialData.length - 1];
+            document.getElementById('inputSaldoAwal').value = last.saldoAkhir;
+        }
+        calculateLivePreview();
+    }
+
+    function calculateLivePreview() {
+        const saldoAwal = Number(document.getElementById('inputSaldoAwal').value) || 0;
+        const pemasukan = Number(document.getElementById('inputPemasukan').value) || 0;
+        
+        let sumExp = 0;
+        document.querySelectorAll('.exp-amount').forEach(inp => {
+            sumExp += Number(inp.value) || 0;
+        });
+
+        const totalMasuk = saldoAwal + pemasukan;
+        const surplus = pemasukan - sumExp;
+        const saldoAkhir = totalMasuk - sumExp;
+
+        document.getElementById('liveTotalExp').textContent = formatRp(sumExp);
+        document.getElementById('prevTotalMasuk').textContent = formatRp(totalMasuk);
+        document.getElementById('prevSurplus').textContent = (surplus >= 0 ? '+' : '') + formatRp(surplus);
+        document.getElementById('prevSurplus').style.color = surplus >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+        document.getElementById('prevSaldoAkhir').textContent = formatRp(saldoAkhir);
+    }
+
+    function toggleForm() {
+        const sec = document.getElementById('formSection');
+        sec.style.display = (sec.style.display === 'none') ? 'block' : 'none';
+    }
+
+    function resetForm() {
+        initFormRows();
+        autoFillSaldoAwal();
+    }
+
+    function saveTransaction() {
+        const month = document.getElementById('inputMonth').value;
+        const year = Number(document.getElementById('inputYear').value) || 2026;
+        const saldoAwal = Number(document.getElementById('inputSaldoAwal').value) || 0;
+        const pemasukan = Number(document.getElementById('inputPemasukan').value) || 0;
+
+        const expenses = [];
+        document.querySelectorAll('.expense-row').forEach(row => {
+            const name = row.querySelector('.exp-name').value.trim();
+            const amount = Number(row.querySelector('.exp-amount').value) || 0;
+            if (name && amount > 0) {
+                expenses.push({ name, amount });
+            }
+        });
+
+        const totalPengeluaran = expenses.reduce((s, e) => s + e.amount, 0);
+        const saldoAkhir = saldoAwal + pemasukan - totalPengeluaran;
+
+        const newEntry = {
+            month,
+            year,
+            saldoAwal,
+            pemasukan,
+            expenses,
+            saldoAkhir
+        };
+
+        // Check if month & year already exists, if so update, else append
+        const existingIdx = financialData.findIndex(d => d.month === month && d.year === year);
+        if (existingIdx >= 0) {
+            financialData[existingIdx] = newEntry;
+        } else {
+            financialData.push(newEntry);
+        }
+
+        // Re-render UI
+        renderAll();
+        showToast(`✅ Data ${month} ${year} berhasil ditambahkan! Saldo akhir: ${formatRp(saldoAkhir)}`);
+
+        // Prepare for next month
+        autoFillSaldoAwal();
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
+    // ===== EXCEL EXPORTER (.xlsx via SheetJS) =====
+    function exportToExcel() {
+        const rows = [
+            ["LAPORAN KEUANGAN PUK PT SAI"],
+            ["Data Diperbarui Dinamis dari Form Input"],
+            [],
+            ["No", "Bulan", "Tahun", "Saldo Awal (Rp)", "Pemasukan (Rp)", "Total Pengeluaran (Rp)", "Saldo Akhir (Rp)", "Surplus/Defisit (Rp)"]
+        ];
+
+        financialData.forEach((d, i) => {
+            const exp = totalExp(d);
+            const surplus = d.pemasukan - exp;
+            rows.push([
+                i + 1,
+                d.month,
+                d.year,
+                d.saldoAwal,
+                d.pemasukan,
+                exp,
+                d.saldoAkhir,
+                surplus
+            ]);
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Laporan Keuangan");
+        XLSX.writeFile(wb, "Laporan_Keuangan_PUK_Terbaru.xlsx");
+        showToast("📥 File Excel (.xlsx) berhasil diunduh!");
+    }
+
+    // ===== DASHBOARD RENDERING =====
+    function renderSummaryCards() {
+        const data = financialData;
+        const totalPemasukan = data.reduce((s, d) => s + (d.pemasukan || 0), 0);
+        const totalPengeluaran = data.reduce((s, d) => s + totalExp(d), 0);
+        const latestSaldo = data.length > 0 ? data[data.length - 1].saldoAkhir : 0;
+        const avgSurplus = data.length > 0 ? (totalPemasukan - totalPengeluaran) / data.length : 0;
+
+        document.getElementById('summaryCards').innerHTML = `
+            <div class="summary-card">
+                <div class="card-label">Total Pemasukan</div>
+                <div class="card-value">${formatRp(totalPemasukan)}</div>
+                <div class="card-desc">${data.length} bulan data tercatat</div>
+            </div>
+            <div class="summary-card">
+                <div class="card-label">Saldo Terakhir</div>
+                <div class="card-value">${formatRp(latestSaldo)}</div>
+                <div class="card-desc">${data.length > 0 ? data[data.length-1].month + ' ' + data[data.length-1].year : ''}</div>
+            </div>
+            <div class="summary-card">
+                <div class="card-label">Total Pengeluaran</div>
+                <div class="card-value">${formatRp(totalPengeluaran)}</div>
+                <div class="card-desc">Akumulasi seluruh pos transaksi</div>
+            </div>
+            <div class="summary-card">
+                <div class="card-label">Rata-rata Surplus</div>
+                <div class="card-value">${formatRp(Math.round(avgSurplus))}</div>
+                <div class="card-desc">Per bulan (pemasukan - pengeluaran)</div>
+            </div>
+        `;
+    }
+
+    function renderTable() {
+        const data = currentYear === 'all' ? financialData : financialData.filter(d => d.year == currentYear);
+        const tbody = document.getElementById('tableBody');
+        document.getElementById('tableBadge').textContent = `${data.length} Bulan`;
+
+        tbody.innerHTML = data.map(d => {
+            const exp = totalExp(d);
+            const surplus = d.pemasukan - exp;
+            return `
+                <tr>
+                    <td>
+                        <div class="month-cell">
+                            <span class="month-dot ${surplus >= 0 ? 'positive' : 'negative'}"></span>
+                            ${d.month} ${d.year}
+                        </div>
+                    </td>
+                    <td>${formatRp(d.saldoAwal)}</td>
+                    <td class="amount-positive">${formatRp(d.pemasukan)}</td>
+                    <td class="amount-negative">${formatRp(exp)}</td>
+                    <td style="font-weight: 700; color: var(--accent-cyan);">${formatRp(d.saldoAkhir)}</td>
+                    <td class="${surplus >= 0 ? 'amount-positive' : 'amount-negative'}">
+                        ${(surplus >= 0 ? '+' : '') + formatRp(surplus)}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function renderMainChart() {
+        const data = currentYear === 'all' ? financialData : financialData.filter(d => d.year == currentYear);
+        const labels = data.map(d => `${d.month.substring(0, 3)} '${String(d.year).slice(-2)}`);
+
+        if (mainChart) mainChart.destroy();
+        mainChart = new Chart(document.getElementById('mainChart'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Pemasukan',
+                        data: data.map(d => d.pemasukan),
+                        backgroundColor: 'rgba(52, 211, 153, 0.4)',
+                        borderColor: '#34d399',
+                        borderWidth: 1.5,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Pengeluaran',
+                        data: data.map(d => totalExp(d)),
+                        backgroundColor: 'rgba(248, 113, 113, 0.4)',
+                        borderColor: '#f87171',
+                        borderWidth: 1.5,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Saldo Akhir',
+                        data: data.map(d => d.saldoAkhir),
+                        type: 'line',
+                        borderColor: '#22d3ee',
+                        borderWidth: 2.5,
+                        tension: 0.3,
+                        pointRadius: 3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#8b95b0', font: { family: 'Inter' } } }
+                },
+                scales: {
+                    x: { ticks: { color: '#5a6480' }, grid: { color: 'rgba(255,255,255,0.03)' } },
+                    y: {
+                        ticks: { color: '#5a6480', callback: v => 'Rp ' + (v/1000000).toFixed(0) + ' jt' },
+                        grid: { color: 'rgba(255,255,255,0.03)' }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderCategoryChart() {
+        const catMap = {};
+        financialData.forEach(d => {
+            d.expenses.forEach(e => {
+                let cat = e.name;
+                if (cat.toLowerCase().includes('setor cos')) cat = 'Setor COS & Pengurus';
+                else if (cat.toLowerCase().includes('angsuran')) cat = 'Angsuran Mobil';
+                else if (cat.toLowerCase().includes('suka') || cat.toLowerCase().includes('duka')) cat = 'Dana Sosial';
+                else if (cat.toLowerCase().includes('aksi') || cat.toLowerCase().includes('longmarch')) cat = 'Aksi & Advokasi';
+                else if (cat.toLowerCase().includes('service') || cat.toLowerCase().includes('pajak') || cat.toLowerCase().includes('ban')) cat = 'Kendaraan';
+                else cat = 'Lain-lain';
+                catMap[cat] = (catMap[cat] || 0) + e.amount;
+            });
+        });
+
+        const labels = Object.keys(catMap);
+        const values = Object.values(catMap);
+
+        if (categoryChart) categoryChart.destroy();
+        categoryChart = new Chart(document.getElementById('categoryChart'), {
+            type: 'doughnut',
+            data: {
+                labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: ['#6380ff', '#f87171', '#34d399', '#fbbf24', '#a78bfa', '#22d3ee'],
+                    borderWidth: 2,
+                    borderColor: '#1a2035'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#8b95b0', font: { family: 'Inter', size: 10 } } }
+                }
+            }
+        });
+    }
+
+    function filterYear(yr) {
+        currentYear = yr;
+        document.querySelectorAll('.year-tab').forEach(t => t.classList.remove('active'));
+        document.querySelector(`.year-tab[data-year="${yr}"]`).classList.add('active');
+        renderAll();
+    }
+
+    function renderAll() {
+        renderSummaryCards();
+        renderMainChart();
+        renderCategoryChart();
+        renderTable();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initFormRows();
+        renderAll();
+    });
+    </script>
+</body>
+</html>
