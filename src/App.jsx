@@ -1,17 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   BarChart3, 
-  Table as TableIcon, 
   TrendingUp, 
   Layers, 
   FileSpreadsheet, 
   Search, 
   Filter,
-  Sparkles,
-  ArrowUpDown,
-  Upload,
-  RefreshCw,
-  HardDrive
+  ListFilter,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
 } from 'lucide-react';
 
 import { DEFAULT_MONTHLY_SEED, CATEGORIES } from './data/defaultData';
@@ -23,13 +22,13 @@ import {
   saveFinancialDataToFile,
   saveToLocalStorage,
   loadFromLocalStorage,
-  clearLocalStorage,
   getActiveFileName,
-  setActiveFileName,
-  getActiveFileHandle
+  setActiveFileName
 } from './utils/fileSystemSync';
 
-import Header from './components/Header';
+import Sidebar from './components/Sidebar';
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 import UploadZone from './components/UploadZone';
 import SummaryCards from './components/SummaryCards';
 import ChartSection from './components/ChartSection';
@@ -45,19 +44,33 @@ export default function App() {
   const [fileName, setFileName] = useState('Laporan_Keuangan_PUK.xlsx');
   const [hasDirectHandle, setHasDirectHandle] = useState(false);
   const [selectedYear, setSelectedYear] = useState('all');
-  const [activeView, setActiveView] = useState('dashboard'); // 'dashboard' | 'rekap_pemasukan' | 'rekap_kategori' | 'transaksi'
+  const [activeView, setActiveView] = useState('dashboard');
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState(null);
+
+  // Mobile sidebar open state
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // Soothing Dark Mode by default (or clean Light Mode if toggled)
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('neraca_theme');
+    return saved === null ? true : saved === 'dark';
+  });
+  const [isLargeFont, setIsLargeFont] = useState(() => {
+    return localStorage.getItem('neraca_font_large') === 'true';
+  });
 
   // Modals
   const [editingMonth, setEditingMonth] = useState(null);
   const [isAddMonthModalOpen, setIsAddMonthModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
-  // Search in detail transactions view
+  // Search & Filter & Pagination in detail transactions view
   const [txSearch, setTxSearch] = useState('');
   const [txCategoryFilter, setTxCategoryFilter] = useState('all');
+  const [txPageSize, setTxPageSize] = useState(25);
+  const [txCurrentPage, setTxCurrentPage] = useState(1);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -65,6 +78,41 @@ export default function App() {
       setToast(null);
     }, 4000);
   };
+
+  // Toggle Theme
+  const handleToggleTheme = () => {
+    setIsDark(prev => {
+      const next = !prev;
+      localStorage.setItem('neraca_theme', next ? 'dark' : 'light');
+      return next;
+    });
+  };
+
+  // Toggle Font Size
+  const handleToggleFontSize = () => {
+    setIsLargeFont(prev => {
+      const next = !prev;
+      localStorage.setItem('neraca_font_large', String(next));
+      return next;
+    });
+  };
+
+  // Apply root theme classes to <html>
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDark]);
+
+  useEffect(() => {
+    if (isLargeFont) {
+      document.documentElement.classList.add('font-large');
+    } else {
+      document.documentElement.classList.remove('font-large');
+    }
+  }, [isLargeFont]);
 
   // Try loading from localStorage on startup
   useEffect(() => {
@@ -158,11 +206,12 @@ export default function App() {
     showToast('✨ Data contoh master (2023 - 2026) berhasil dimuat!', 'success');
   };
 
-  // Handle Download Excel (.xlsx)
+  // Handle Download Excel (.xlsx with charts)
   const handleExportDownload = async () => {
     try {
+      showToast('⏳ Menyiapkan file Excel lengkap dengan grafik gambar...', 'info');
       await exportAndDownloadExcel(monthlyData, fileName || 'Laporan_Keuangan_PUK.xlsx');
-      showToast('📥 File Excel (.xlsx) 5 Sheet berhasil dibuat dan diunduh!', 'success');
+      showToast('📥 File Excel 5 Sheet dengan grafik gambar berhasil diunduh!', 'success');
     } catch (err) {
       console.error(err);
       showToast('Gagal mengekspor file: ' + err.message, 'error');
@@ -191,279 +240,373 @@ export default function App() {
     }
   };
 
-  // Available years list
   const availableYears = Array.from(new Set(monthlyData.map(d => d.year))).sort((a, b) => a - b);
 
   // Flattened all transactions for detail view
-  const allTransactions = [];
-  monthlyData.forEach(d => {
-    if (d.pemasukan > 0) {
-      allTransactions.push({
-        id: `${d.period}-inflow`,
-        period: d.period,
-        year: d.year,
-        month: d.month,
-        name: `Pemasukan Kas ${d.month} ${d.year}`,
-        category: 'Pemasukan Kas',
-        type: 'pemasukan',
-        amount: d.pemasukan
-      });
-    }
-    (d.expenses || []).forEach((e, idx) => {
-      allTransactions.push({
-        id: `${d.period}-exp-${idx}`,
-        period: d.period,
-        year: d.year,
-        month: d.month,
-        name: e.name,
-        category: e.category || 'Lain-lain',
-        type: 'pengeluaran',
-        amount: e.amount
+  const allTransactions = useMemo(() => {
+    const list = [];
+    monthlyData.forEach(d => {
+      if (d.pemasukan > 0) {
+        list.push({
+          id: `${d.period}-inflow`,
+          period: d.period,
+          year: d.year,
+          month: d.month,
+          name: `Pemasukan Kas ${d.month} ${d.year}`,
+          category: 'Pemasukan Kas',
+          type: 'pemasukan',
+          amount: d.pemasukan
+        });
+      }
+      (d.expenses || []).forEach((e, idx) => {
+        list.push({
+          id: `${d.period}-exp-${idx}`,
+          period: d.period,
+          year: d.year,
+          month: d.month,
+          name: e.name,
+          category: e.category || 'Lain-lain',
+          type: 'pengeluaran',
+          amount: e.amount
+        });
       });
     });
-  });
+    return list;
+  }, [monthlyData]);
 
-  const filteredTransactions = allTransactions.filter(tx => {
-    const matchesYear = selectedYear === 'all' || tx.year === selectedYear;
-    const matchesCategory = txCategoryFilter === 'all' || tx.category === txCategoryFilter;
-    const matchesSearch = txSearch === '' || 
-      tx.name.toLowerCase().includes(txSearch.toLowerCase()) ||
-      tx.category.toLowerCase().includes(txSearch.toLowerCase()) ||
-      tx.month.toLowerCase().includes(txSearch.toLowerCase()) ||
-      String(tx.year).includes(txSearch);
+  const filteredTransactions = useMemo(() => {
+    return allTransactions.filter(tx => {
+      const matchesYear = selectedYear === 'all' || tx.year === selectedYear;
+      const matchesCategory = txCategoryFilter === 'all' || tx.category === txCategoryFilter;
+      const matchesSearch = txSearch === '' || 
+        tx.name.toLowerCase().includes(txSearch.toLowerCase()) ||
+        tx.category.toLowerCase().includes(txSearch.toLowerCase()) ||
+        tx.month.toLowerCase().includes(txSearch.toLowerCase()) ||
+        String(tx.year).includes(txSearch);
 
-    return matchesYear && matchesCategory && matchesSearch;
-  });
+      return matchesYear && matchesCategory && matchesSearch;
+    });
+  }, [allTransactions, selectedYear, txCategoryFilter, txSearch]);
+
+  // Transaction list pagination
+  const totalTxItems = filteredTransactions.length;
+  const effectiveTxPageSize = txPageSize === 'all' ? totalTxItems : txPageSize;
+  const totalTxPages = txPageSize === 'all' || totalTxItems === 0 ? 1 : Math.ceil(totalTxItems / txPageSize);
+  const validTxPage = Math.min(Math.max(1, txCurrentPage), totalTxPages);
+
+  const paginatedTransactions = useMemo(() => {
+    if (txPageSize === 'all') return filteredTransactions;
+    const start = (validTxPage - 1) * txPageSize;
+    return filteredTransactions.slice(start, start + txPageSize);
+  }, [filteredTransactions, validTxPage, txPageSize]);
+
+  const txStartDisplay = totalTxItems === 0 ? 0 : (validTxPage - 1) * effectiveTxPageSize + 1;
+  const txEndDisplay = txPageSize === 'all' ? totalTxItems : Math.min(validTxPage * txPageSize, totalTxItems);
+
+  useEffect(() => {
+    setTxCurrentPage(1);
+  }, [txSearch, txCategoryFilter, selectedYear, txPageSize]);
 
   return (
-    <div className="min-h-screen bg-background text-[#f0f2f8] selection:bg-accentBlue selection:text-white pb-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
-        {!isLoaded ? (
-          /* Initial Screen: Upload Zone */
-          <div className="py-12 flex flex-col items-center justify-center">
-            <UploadZone
-              onFileUploaded={handleFileUploaded}
-              onPickWithNativeHandle={handlePickWithNativeHandle}
-              onUseDefaultData={handleUseDefaultData}
-            />
-          </div>
-        ) : (
-          /* Main Dashboard & Editor Screen */
-          <>
-            <Header
-              fileName={fileName}
-              hasDirectHandle={hasDirectHandle}
-              isDirty={isDirty}
-              isSaving={isSaving}
+    <div className="min-h-screen bg-slate-100 dark:bg-[#0a0e1a] text-slate-900 dark:text-[#f0f2f8] transition-colors duration-200">
+      {!isLoaded ? (
+        /* Initial Screen: Upload Zone */
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <UploadZone
+            onFileUploaded={handleFileUploaded}
+            onPickWithNativeHandle={handlePickWithNativeHandle}
+            onUseDefaultData={handleUseDefaultData}
+          />
+        </div>
+      ) : (
+        /* App Layout: Sidebar + Navbar + Main Content + Footer */
+        <div className="flex min-h-screen">
+          {/* Sidebar */}
+          <Sidebar
+            activeView={activeView}
+            onSelectView={setActiveView}
+            availableYears={availableYears}
+            selectedYear={selectedYear}
+            onSelectYear={setSelectedYear}
+            fileName={fileName}
+            hasDirectHandle={hasDirectHandle}
+            isDirty={isDirty}
+            isOpenMobile={isMobileSidebarOpen}
+            onCloseMobile={() => setIsMobileSidebarOpen(false)}
+          />
+
+          {/* Main Wrapper (Offset for Desktop Sidebar) */}
+          <div className="flex-1 flex flex-col lg:pl-72 min-w-0">
+            {/* Top Navbar */}
+            <Navbar
+              activeView={activeView}
+              selectedYear={selectedYear}
+              onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
+              onOpenAddMonthModal={() => setIsAddMonthModalOpen(true)}
               onSave={handleSave}
+              isSaving={isSaving}
+              isDirty={isDirty}
+              hasDirectHandle={hasDirectHandle}
               onExportDownload={handleExportDownload}
               onOpenUploadModal={() => setIsUploadModalOpen(true)}
-              onOpenAddMonthModal={() => setIsAddMonthModalOpen(true)}
-              availableYears={availableYears}
-              selectedYear={selectedYear}
-              onSelectYear={setSelectedYear}
+              isDark={isDark}
+              onToggleTheme={handleToggleTheme}
+              isLargeFont={isLargeFont}
+              onToggleFontSize={handleToggleFontSize}
             />
 
-            {/* Navigation Tabs (Dashboard / Rekap Pemasukan / Rekap Kategori / Transaksi) */}
-            <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2 border-b border-borderCustom/40">
-              <button
-                onClick={() => setActiveView('dashboard')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shrink-0 ${
-                  activeView === 'dashboard'
-                    ? 'bg-accentBlue text-white shadow-lg shadow-accentBlue/25 ring-1 ring-accentBlue/50'
-                    : 'bg-surface/60 text-slate-400 hover:text-white hover:bg-surface border border-borderCustom/40'
-                }`}
-              >
-                <BarChart3 className="w-4 h-4" />
-                <span>Dashboard & Buku Kas</span>
-              </button>
+            {/* Main Content Area */}
+            <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+              {/* View 1: Main Dashboard */}
+              {activeView === 'dashboard' && (
+                <>
+                  <SummaryCards
+                    monthlyData={monthlyData}
+                    selectedYear={selectedYear}
+                  />
 
-              <button
-                onClick={() => setActiveView('rekap_pemasukan')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shrink-0 ${
-                  activeView === 'rekap_pemasukan'
-                    ? 'bg-accentBlue text-white shadow-lg shadow-accentBlue/25 ring-1 ring-accentBlue/50'
-                    : 'bg-surface/60 text-slate-400 hover:text-white hover:bg-surface border border-borderCustom/40'
-                }`}
-              >
-                <TrendingUp className="w-4 h-4" />
-                <span>Rekap Pemasukan</span>
-              </button>
+                  <ChartSection
+                    monthlyData={monthlyData}
+                    selectedYear={selectedYear}
+                    isDark={isDark}
+                  />
 
-              <button
-                onClick={() => setActiveView('rekap_kategori')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shrink-0 ${
-                  activeView === 'rekap_kategori'
-                    ? 'bg-accentBlue text-white shadow-lg shadow-accentBlue/25 ring-1 ring-accentBlue/50'
-                    : 'bg-surface/60 text-slate-400 hover:text-white hover:bg-surface border border-borderCustom/40'
-                }`}
-              >
-                <Layers className="w-4 h-4" />
-                <span>Rekap Kategori</span>
-              </button>
+                  <MonthlyTable
+                    monthlyData={monthlyData}
+                    selectedYear={selectedYear}
+                    onEditMonth={month => setEditingMonth(month)}
+                    onDeleteMonth={handleDeleteMonth}
+                    onOpenAddMonthModal={() => setIsAddMonthModalOpen(true)}
+                  />
+                </>
+              )}
 
-              <button
-                onClick={() => setActiveView('transaksi')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shrink-0 ${
-                  activeView === 'transaksi'
-                    ? 'bg-accentBlue text-white shadow-lg shadow-accentBlue/25 ring-1 ring-accentBlue/50'
-                    : 'bg-surface/60 text-slate-400 hover:text-white hover:bg-surface border border-borderCustom/40'
-                }`}
-              >
-                <FileSpreadsheet className="w-4 h-4" />
-                <span>Semua Data Transaksi ({allTransactions.length})</span>
-              </button>
-            </div>
-
-            {/* View 1: Main Dashboard (KPI Cards + Charts + Monthly Table) */}
-            {activeView === 'dashboard' && (
-              <>
-                <SummaryCards
+              {/* View 2: Rekap Pemasukan */}
+              {activeView === 'rekap_pemasukan' && (
+                <RekapPemasukanTable
                   monthlyData={monthlyData}
-                  selectedYear={selectedYear}
+                  availableYears={availableYears}
                 />
+              )}
 
-                <ChartSection
+              {/* View 3: Rekap Kategori */}
+              {activeView === 'rekap_kategori' && (
+                <RekapKategoriTable
                   monthlyData={monthlyData}
-                  selectedYear={selectedYear}
+                  availableYears={availableYears}
                 />
+              )}
 
-                <MonthlyTable
-                  monthlyData={monthlyData}
-                  selectedYear={selectedYear}
-                  onEditMonth={month => setEditingMonth(month)}
-                  onDeleteMonth={handleDeleteMonth}
-                  onOpenAddMonthModal={() => setIsAddMonthModalOpen(true)}
-                />
-              </>
-            )}
-
-            {/* View 2: Rekap Pemasukan */}
-            {activeView === 'rekap_pemasukan' && (
-              <RekapPemasukanTable
-                monthlyData={monthlyData}
-                availableYears={availableYears}
-              />
-            )}
-
-            {/* View 3: Rekap Kategori */}
-            {activeView === 'rekap_kategori' && (
-              <RekapKategoriTable
-                monthlyData={monthlyData}
-                availableYears={availableYears}
-              />
-            )}
-
-            {/* View 4: Transaksi Detail Table with Search & Filter */}
-            {activeView === 'transaksi' && (
-              <div className="glass-panel rounded-3xl p-5 sm:p-7 mb-8 overflow-hidden">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-borderCustom/40 mb-6">
-                  <div>
-                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                      <FileSpreadsheet className="w-5 h-5 text-accentCyan" />
-                      Daftar Master Seluruh Transaksi
-                    </h2>
-                    <p className="text-xs text-slate-400 mt-1">
-                      Menampilkan {filteredTransactions.length} dari total {allTransactions.length} baris transaksi
-                    </p>
-                  </div>
-
-                  {/* Search & Category Filter Controls */}
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    {/* Search */}
-                    <div className="relative">
-                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        placeholder="Cari transaksi / bulan..."
-                        value={txSearch}
-                        onChange={e => setTxSearch(e.target.value)}
-                        className="bg-surface border border-borderCustom rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-accentBlue w-48 sm:w-60"
-                      />
+              {/* View 4: Transaksi Detail Table */}
+              {activeView === 'transaksi' && (
+                <div className="bg-white dark:bg-[#131b2e] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-7 mb-8 shadow-sm overflow-hidden">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-200 dark:border-slate-800 mb-6">
+                    <div>
+                      <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <FileSpreadsheet className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+                        Daftar Master Seluruh Transaksi
+                      </h2>
+                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                        Menampilkan {filteredTransactions.length} dari total {allTransactions.length} baris transaksi
+                      </p>
                     </div>
 
-                    {/* Category Filter */}
-                    <select
-                      value={txCategoryFilter}
-                      onChange={e => setTxCategoryFilter(e.target.value)}
-                      className="bg-surface border border-borderCustom rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-accentBlue"
-                    >
-                      <option value="all">Semua Kategori</option>
-                      <option value="Pemasukan Kas">Pemasukan Kas</option>
-                      {CATEGORIES.filter(c => c !== 'Pemasukan Kas').map(cat => (
-                        <option key={cat} value={cat}>
-                          {cat}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                    {/* Search & Category Filter Controls & Page Size */}
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      {/* Rows selector */}
+                      <div className="flex items-center gap-1.5 text-xs sm:text-sm bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <ListFilter className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
+                        <span className="font-semibold text-slate-600 dark:text-slate-300">Tampilkan:</span>
+                        <select
+                          value={txPageSize}
+                          onChange={e => {
+                            const v = e.target.value;
+                            setTxPageSize(v === 'all' ? 'all' : parseInt(v, 10));
+                          }}
+                          className="bg-transparent font-bold text-slate-900 dark:text-white focus:outline-none cursor-pointer"
+                        >
+                          <option value={10} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">10</option>
+                          <option value={25} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">25</option>
+                          <option value={50} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">50</option>
+                          <option value={100} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">100</option>
+                          <option value="all" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Semua</option>
+                        </select>
+                      </div>
 
-                {/* Table */}
-                <div className="overflow-x-auto -mx-5 sm:-mx-7 px-5 sm:px-7">
-                  <table className="w-full text-left border-collapse text-xs sm:text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-800 bg-surface/80 text-slate-400 font-semibold uppercase text-[11px] tracking-wider">
-                        <th className="py-3.5 px-3 text-center w-12">No</th>
-                        <th className="py-3.5 px-3 text-center">Periode</th>
-                        <th className="py-3.5 px-4">Bulan & Tahun</th>
-                        <th className="py-3.5 px-4">Nama Transaksi</th>
-                        <th className="py-3.5 px-4">Kategori</th>
-                        <th className="py-3.5 px-4 text-center">Tipe</th>
-                        <th className="py-3.5 px-4 text-right">Nominal</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800/60 font-mono">
-                      {filteredTransactions.length === 0 ? (
-                        <tr>
-                          <td colSpan={7} className="text-center py-10 text-slate-500 font-medium font-sans">
-                            Tidak ada transaksi yang cocok dengan pencarian / filter.
-                          </td>
+                      {/* Search */}
+                      <div className="relative">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="Cari transaksi / bulan..."
+                          value={txSearch}
+                          onChange={e => setTxSearch(e.target.value)}
+                          className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3.5 py-2 text-xs sm:text-sm text-slate-900 dark:text-white font-medium placeholder:text-slate-400 focus:outline-none focus:border-blue-600 w-48 sm:w-60 shadow-sm"
+                        />
+                      </div>
+
+                      {/* Category Filter */}
+                      <select
+                        value={txCategoryFilter}
+                        onChange={e => setTxCategoryFilter(e.target.value)}
+                        className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-semibold focus:outline-none focus:border-blue-600 shadow-sm cursor-pointer"
+                      >
+                        <option value="all">Semua Kategori</option>
+                        <option value="Pemasukan Kas">Pemasukan Kas</option>
+                        {CATEGORIES.filter(c => c !== 'Pemasukan Kas').map(cat => (
+                          <option key={cat} value={cat}>
+                            {cat}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Table */}
+                  <div className="overflow-x-auto -mx-5 sm:-mx-7 px-5 sm:px-7">
+                    <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                      <thead>
+                        <tr className="border-b-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-300 font-bold uppercase text-[11px] tracking-wider">
+                          <th className="py-4 px-3 text-center w-12">No</th>
+                          <th className="py-4 px-3 text-center">Periode</th>
+                          <th className="py-4 px-4">Bulan & Tahun</th>
+                          <th className="py-4 px-4">Nama Transaksi</th>
+                          <th className="py-4 px-4">Kategori</th>
+                          <th className="py-4 px-4 text-center">Tipe</th>
+                          <th className="py-4 px-4 text-right font-mono">Nominal</th>
                         </tr>
-                      ) : (
-                        filteredTransactions.map((tx, idx) => {
-                          const isIncome = tx.type === 'pemasukan';
-                          return (
-                            <tr key={tx.id || idx} className="hover:bg-slate-800/40 transition-colors">
-                              <td className="py-3 px-3 text-center text-slate-500 font-sans">{idx + 1}</td>
-                              <td className="py-3 px-3 text-center text-slate-400">{tx.period}</td>
-                              <td className="py-3 px-4 font-sans text-slate-300">{tx.month} {tx.year}</td>
-                              <td className="py-3 px-4 font-sans font-medium text-white">{tx.name}</td>
-                              <td className="py-3 px-4 font-sans">
-                                <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-800 text-slate-300 border border-slate-700">
-                                  {tx.category}
-                                </span>
-                              </td>
-                              <td className="py-3 px-4 text-center font-sans">
-                                <span
-                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                                    isIncome
-                                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                                      : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 font-mono font-medium">
+                        {paginatedTransactions.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} className="text-center py-12 text-slate-400 font-medium font-sans text-sm">
+                              Tidak ada transaksi yang cocok dengan pencarian / filter.
+                            </td>
+                          </tr>
+                        ) : (
+                          paginatedTransactions.map((tx, idx) => {
+                            const isIncome = tx.type === 'pemasukan';
+                            const globalIdx = txPageSize === 'all' ? idx + 1 : (validTxPage - 1) * txPageSize + idx + 1;
+
+                            return (
+                              <tr key={tx.id || idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                                <td className="py-3 px-3 text-center text-slate-400 font-sans font-semibold">{globalIdx}</td>
+                                <td className="py-3 px-3 text-center text-slate-500 dark:text-slate-400 font-semibold">{tx.period}</td>
+                                <td className="py-3 px-4 font-sans font-bold text-slate-800 dark:text-slate-200">{tx.month} {tx.year}</td>
+                                <td className="py-3 px-4 font-sans font-bold text-slate-900 dark:text-white">{tx.name}</td>
+                                <td className="py-3 px-4 font-sans">
+                                  <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                    {tx.category}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 text-center font-sans">
+                                  <span
+                                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                      isIncome
+                                        ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30'
+                                        : 'bg-rose-50 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30'
+                                    }`}
+                                  >
+                                    {tx.type}
+                                  </span>
+                                </td>
+                                <td
+                                  className={`py-3 px-4 text-right font-black ${
+                                    isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                                   }`}
                                 >
-                                  {tx.type}
-                                </span>
-                              </td>
-                              <td
-                                className={`py-3 px-4 text-right font-bold ${
-                                  isIncome ? 'text-emerald-400' : 'text-rose-400'
-                                }`}
-                              >
-                                {isIncome ? '+' : '-'}{formatRp(tx.amount)}
-                              </td>
-                            </tr>
-                          );
-                        })
+                                  {isIncome ? '+' : '-'}{formatRp(tx.amount)}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination Controls */}
+                  {totalTxItems > 0 && (
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-5 mt-4 border-t border-slate-200 dark:border-slate-800">
+                      <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+                        Menampilkan baris <span className="font-bold text-slate-900 dark:text-white font-mono">{txStartDisplay} - {txEndDisplay}</span> dari total <span className="font-bold text-slate-900 dark:text-white font-mono">{totalTxItems}</span> transaksi
+                      </div>
+
+                      {totalTxPages > 1 && txPageSize !== 'all' && (
+                        <div className="flex items-center gap-1.5 self-center sm:self-auto">
+                          <button
+                            onClick={() => setTxCurrentPage(1)}
+                            disabled={validTxPage === 1}
+                            title="Halaman Pertama"
+                            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                          >
+                            <ChevronsLeft className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            onClick={() => setTxCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={validTxPage === 1}
+                            title="Halaman Sebelumnya"
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-xs sm:text-sm transition"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                            <span className="hidden sm:inline">Sebelumnya</span>
+                          </button>
+
+                          {Array.from({ length: totalTxPages }, (_, i) => i + 1)
+                            .filter(p => p === 1 || p === totalTxPages || Math.abs(p - validTxPage) <= 1)
+                            .map((pageNum, idx, arr) => {
+                              const prevVal = arr[idx - 1];
+                              const showEllipsis = prevVal && pageNum - prevVal > 1;
+
+                              return (
+                                <React.Fragment key={pageNum}>
+                                  {showEllipsis && <span className="px-1 text-slate-400 font-bold">...</span>}
+                                  <button
+                                    onClick={() => setTxCurrentPage(pageNum)}
+                                    className={`w-8 h-8 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+                                      validTxPage === pageNum
+                                        ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
+                                        : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                    }`}
+                                  >
+                                    {pageNum}
+                                  </button>
+                                </React.Fragment>
+                              );
+                            })}
+
+                          <button
+                            onClick={() => setTxCurrentPage(prev => Math.min(prev + 1, totalTxPages))}
+                            disabled={validTxPage === totalTxPages}
+                            title="Halaman Berikutnya"
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-xs sm:text-sm transition"
+                          >
+                            <span className="hidden sm:inline">Berikutnya</span>
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            onClick={() => setTxCurrentPage(totalTxPages)}
+                            disabled={validTxPage === totalTxPages}
+                            title="Halaman Terakhir"
+                            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                          >
+                            <ChevronsRight className="w-4 h-4" />
+                          </button>
+                        </div>
                       )}
-                    </tbody>
-                  </table>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+              )}
+
+              {/* Footer */}
+              <Footer />
+            </main>
+          </div>
+        </div>
+      )}
 
       {/* Edit Month Modal */}
       {editingMonth && (
@@ -474,6 +617,7 @@ export default function App() {
           isNew={false}
           allMonthlyData={monthlyData}
           onSaveMonth={handleSaveMonth}
+          isDark={isDark}
         />
       )}
 
@@ -486,10 +630,11 @@ export default function App() {
           isNew={true}
           allMonthlyData={monthlyData}
           onSaveMonth={handleSaveMonth}
+          isDark={isDark}
         />
       )}
 
-      {/* Upload Modal (when clicking Ganti File from header) */}
+      {/* Upload Modal */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto">
           <div className="w-full max-w-2xl">

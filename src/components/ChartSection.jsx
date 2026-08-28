@@ -30,7 +30,7 @@ ChartJS.register(
   Filler
 );
 
-export default function ChartSection({ monthlyData, selectedYear, isDark = false }) {
+export default function ChartSection({ monthlyData, selectedYear, isDark = true }) {
   const [activeTab, setActiveTab] = useState('cashflow');
 
   const filtered = selectedYear === 'all'
@@ -39,8 +39,8 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = false
 
   const labels = filtered.map(d => `${d.month.slice(0, 3)} '${String(d.year).slice(-2)}`);
   
-  const textColor = isDark ? '#cbd5e1' : '#334155';
-  const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+  const textColor = isDark ? '#94a3b8' : '#475569';
+  const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
   
   // 1. Cashflow Chart Data
   const cashflowChartData = {
@@ -50,7 +50,7 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = false
         type: 'bar',
         label: 'Pemasukan',
         data: filtered.map(d => d.pemasukan),
-        backgroundColor: isDark ? 'rgba(52, 211, 153, 0.65)' : 'rgba(16, 185, 129, 0.85)',
+        backgroundColor: isDark ? 'rgba(52, 211, 153, 0.65)' : 'rgba(16, 185, 129, 0.8)',
         borderColor: isDark ? '#34d399' : '#059669',
         borderWidth: 1.5,
         borderRadius: 6,
@@ -60,7 +60,7 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = false
         type: 'bar',
         label: 'Pengeluaran',
         data: filtered.map(d => d.totalPengeluaran),
-        backgroundColor: isDark ? 'rgba(248, 113, 113, 0.65)' : 'rgba(239, 68, 68, 0.85)',
+        backgroundColor: isDark ? 'rgba(248, 113, 113, 0.65)' : 'rgba(239, 68, 68, 0.8)',
         borderColor: isDark ? '#f87171' : '#dc2626',
         borderWidth: 1.5,
         borderRadius: 6,
@@ -75,7 +75,7 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = false
         borderWidth: 3,
         tension: 0.3,
         pointBackgroundColor: isDark ? '#22d3ee' : '#2563eb',
-        pointBorderColor: '#ffffff',
+        pointBorderColor: isDark ? '#131b2e' : '#ffffff',
         pointBorderWidth: 2,
         pointRadius: 4,
         pointHoverRadius: 6,
@@ -97,17 +97,17 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = false
         position: 'top',
         labels: {
           color: textColor,
-          font: { family: 'Inter', size: 13, weight: '600' },
+          font: { family: 'Inter', size: 12, weight: '600' },
           usePointStyle: true,
-          boxWidth: 10,
-          padding: 16
+          boxWidth: 8,
+          padding: 14
         }
       },
       tooltip: {
         backgroundColor: isDark ? '#0f172a' : '#ffffff',
         titleColor: isDark ? '#f8fafc' : '#0f172a',
         bodyColor: isDark ? '#cbd5e1' : '#334155',
-        borderColor: isDark ? 'rgba(99, 128, 255, 0.3)' : '#cbd5e1',
+        borderColor: isDark ? '#334155' : '#cbd5e1',
         borderWidth: 1,
         padding: 12,
         boxPadding: 6,
@@ -158,7 +158,7 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = false
       {
         data: sortedCategories.map(c => c[1]),
         backgroundColor: sortedCategories.map((_, idx) => catColors[idx % catColors.length]),
-        borderColor: isDark ? '#111827' : '#ffffff',
+        borderColor: isDark ? '#131b2e' : '#ffffff',
         borderWidth: 2,
         hoverOffset: 6
       }
@@ -174,7 +174,7 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = false
         labels: {
           color: textColor,
           font: { family: 'Inter', size: 11, weight: '600' },
-          boxWidth: 12,
+          boxWidth: 10,
           padding: 10
         }
       },
@@ -182,7 +182,7 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = false
         backgroundColor: isDark ? '#0f172a' : '#ffffff',
         titleColor: isDark ? '#f8fafc' : '#0f172a',
         bodyColor: isDark ? '#cbd5e1' : '#334155',
-        borderColor: isDark ? 'rgba(99, 128, 255, 0.3)' : '#cbd5e1',
+        borderColor: isDark ? '#334155' : '#cbd5e1',
         borderWidth: 1,
         padding: 12,
         callbacks: {
@@ -206,8 +206,8 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = false
         data: filtered.map(d => d.surplusDefisit),
         backgroundColor: filtered.map(d =>
           d.surplusDefisit >= 0
-            ? (isDark ? 'rgba(52, 211, 153, 0.75)' : 'rgba(16, 185, 129, 0.85)')
-            : (isDark ? 'rgba(248, 113, 113, 0.75)' : 'rgba(239, 68, 68, 0.85)')
+            ? (isDark ? 'rgba(52, 211, 153, 0.7)' : 'rgba(16, 185, 129, 0.8)')
+            : (isDark ? 'rgba(248, 113, 113, 0.7)' : 'rgba(239, 68, 68, 0.8)')
         ),
         borderColor: filtered.map(d =>
           d.surplusDefisit >= 0 ? '#059669' : '#dc2626'
@@ -227,7 +227,7 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = false
         backgroundColor: isDark ? '#0f172a' : '#ffffff',
         titleColor: isDark ? '#f8fafc' : '#0f172a',
         bodyColor: isDark ? '#cbd5e1' : '#334155',
-        borderColor: isDark ? 'rgba(99, 128, 255, 0.3)' : '#cbd5e1',
+        borderColor: isDark ? '#334155' : '#cbd5e1',
         borderWidth: 1,
         callbacks: {
           label: ctx => `Surplus/Defisit: ${formatRp(ctx.raw)}`
@@ -248,27 +248,27 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = false
   };
 
   return (
-    <div className="glass-panel rounded-3xl p-5 sm:p-7 mb-8">
+    <div className="bg-white dark:bg-[#131b2e] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-7 mb-8 shadow-sm">
       {/* Chart Top Navigation */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-200 dark:border-borderCustom/40 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-200 dark:border-slate-800 mb-6">
         <div>
           <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-blue-600 dark:text-accentCyan" />
+            <BarChart3 className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
             Visualisasi & Grafik Analisis
           </h2>
-          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-0.5">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
             {selectedYear === 'all' ? 'Menampilkan seluruh tren periode' : `Analisis keuangan tahun ${selectedYear}`}
           </p>
         </div>
 
         {/* Tab switcher */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-surface rounded-xl border border-slate-300 dark:border-borderCustom self-start sm:self-auto">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 self-start sm:self-auto">
           <button
             onClick={() => setActiveTab('cashflow')}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${
               activeTab === 'cashflow'
-                ? 'bg-blue-600 dark:bg-accentBlue text-white shadow-sm'
-                : 'text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-card'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <TrendingUp className="w-4 h-4" />
@@ -278,8 +278,8 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = false
             onClick={() => setActiveTab('category')}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${
               activeTab === 'category'
-                ? 'bg-blue-600 dark:bg-accentBlue text-white shadow-sm'
-                : 'text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-card'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <PieChart className="w-4 h-4" />
@@ -289,8 +289,8 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = false
             onClick={() => setActiveTab('surplus')}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${
               activeTab === 'surplus'
-                ? 'bg-blue-600 dark:bg-accentBlue text-white shadow-sm'
-                : 'text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-card'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <Layers className="w-4 h-4" />
@@ -320,14 +320,14 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = false
                 return (
                   <div
                     key={cat}
-                    className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-surface/80 border border-slate-200 dark:border-borderCustom/50 text-xs sm:text-sm"
+                    className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span
                         className="w-3 h-3 rounded-full shrink-0"
                         style={{ backgroundColor: catColors[idx % catColors.length] }}
                       />
-                      <span className="font-bold text-slate-900 dark:text-slate-200 truncate">{cat}</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200 truncate">{cat}</span>
                     </div>
                     <div className="text-right shrink-0 ml-2">
                       <span className="font-mono font-bold text-slate-900 dark:text-white">{formatRp(total)}</span>
