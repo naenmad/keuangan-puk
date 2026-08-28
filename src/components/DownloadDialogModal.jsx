@@ -5,47 +5,42 @@ import {
   FileSpreadsheet, 
   CheckCircle2, 
   Sparkles, 
-  Layers, 
-  BarChart2
+  Calendar
 } from 'lucide-react';
 
 export default function DownloadDialogModal({
   isOpen,
   onClose,
   defaultFilename,
-  onConfirmDownload,
-  monthlyData,
-  selectedYear
+  onConfirmDownload
 }) {
   if (!isOpen) return null;
 
-  // Generate dynamic default name based on latest month/year or selected year
+  // Generate default name with today's date in Indonesian format (e.g. "28 Agustus 2026")
   const getSuggestedName = () => {
-    if (defaultFilename && defaultFilename !== 'Laporan_Keuangan_PUK.xlsx') {
-      return defaultFilename;
-    }
-    if (monthlyData && monthlyData.length > 0) {
-      const latest = monthlyData[monthlyData.length - 1];
-      if (selectedYear !== 'all') {
-        return `Laporan Keuangan PUK (Tahun ${selectedYear}).xlsx`;
-      }
-      return `Laporan Keuangan PUK (${latest.month} ${latest.year}).xlsx`;
-    }
-    return `Laporan Keuangan PUK (${new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}).xlsx`;
+    const today = new Date();
+    const formattedDate = today.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+    return `Laporan Keuangan PUK (${formattedDate}).xlsx`;
   };
 
   const [filename, setFilename] = useState(() => getSuggestedName());
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
-    setFilename(getSuggestedName());
-  }, [isOpen, defaultFilename, selectedYear, monthlyData]);
+    if (isOpen) {
+      setFilename(getSuggestedName());
+    }
+  }, [isOpen]);
 
   const handleDownload = async (e) => {
     e.preventDefault();
     let finalName = filename.trim();
     if (!finalName) {
-      finalName = 'Laporan Keuangan PUK.xlsx';
+      finalName = getSuggestedName();
     }
     if (!finalName.toLowerCase().endsWith('.xlsx')) {
       finalName += '.xlsx';
@@ -99,7 +94,7 @@ export default function DownloadDialogModal({
                 type="text"
                 value={filename}
                 onChange={e => setFilename(e.target.value)}
-                placeholder="Contoh: Laporan Keuangan PUK (Agustus 2026).xlsx"
+                placeholder="Contoh: Laporan Keuangan PUK (28 Agustus 2026).xlsx"
                 className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-blue-600 pr-10"
                 autoFocus
               />
