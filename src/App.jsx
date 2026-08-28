@@ -10,7 +10,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
+  Bot
 } from 'lucide-react';
 
 import { DEFAULT_MONTHLY_SEED, CATEGORIES } from './data/defaultData';
@@ -34,6 +35,8 @@ import SummaryCards from './components/SummaryCards';
 import ChartSection from './components/ChartSection';
 import MonthlyTable from './components/MonthlyTable';
 import MonthlyEditorModal from './components/MonthlyEditorModal';
+import DownloadDialogModal from './components/DownloadDialogModal';
+import AIAnalysisSection from './components/AIAnalysisSection';
 import RekapPemasukanTable from './components/RekapPemasukanTable';
 import RekapKategoriTable from './components/RekapKategoriTable';
 import Toast from './components/Toast';
@@ -44,27 +47,25 @@ export default function App() {
   const [fileName, setFileName] = useState('Laporan_Keuangan_PUK.xlsx');
   const [hasDirectHandle, setHasDirectHandle] = useState(false);
   const [selectedYear, setSelectedYear] = useState('all');
-  const [activeView, setActiveView] = useState('dashboard');
+  const [activeView, setActiveView] = useState('dashboard'); // 'dashboard' | 'ai_analysis' | 'rekap_pemasukan' | 'rekap_kategori' | 'transaksi'
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState(null);
 
-  // Mobile sidebar open state
+  // Mobile sidebar drawer state
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  // Soothing Dark Mode by default (or clean Light Mode if toggled)
+  // Soothing Dark Mode / Clean Light Mode state (Controlled via Navbar)
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('neraca_theme');
-    return saved === null ? true : saved === 'dark';
-  });
-  const [isLargeFont, setIsLargeFont] = useState(() => {
-    return localStorage.getItem('neraca_font_large') === 'true';
+    return saved === 'dark' || saved === null;
   });
 
   // Modals
   const [editingMonth, setEditingMonth] = useState(null);
   const [isAddMonthModalOpen, setIsAddMonthModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
   // Search & Filter & Pagination in detail transactions view
   const [txSearch, setTxSearch] = useState('');
@@ -88,31 +89,17 @@ export default function App() {
     });
   };
 
-  // Toggle Font Size
-  const handleToggleFontSize = () => {
-    setIsLargeFont(prev => {
-      const next = !prev;
-      localStorage.setItem('neraca_font_large', String(next));
-      return next;
-    });
-  };
-
-  // Apply root theme classes to <html>
+  // Synchronize 'dark' class on <html> element
   useEffect(() => {
+    const root = document.documentElement;
     if (isDark) {
-      document.documentElement.classList.add('dark');
+      root.classList.add('dark');
+      root.style.colorScheme = 'dark';
     } else {
-      document.documentElement.classList.remove('dark');
+      root.classList.remove('dark');
+      root.style.colorScheme = 'light';
     }
   }, [isDark]);
-
-  useEffect(() => {
-    if (isLargeFont) {
-      document.documentElement.classList.add('font-large');
-    } else {
-      document.documentElement.classList.remove('font-large');
-    }
-  }, [isLargeFont]);
 
   // Try loading from localStorage on startup
   useEffect(() => {
@@ -133,7 +120,7 @@ export default function App() {
     saveToLocalStorage(recalculated);
   }, []);
 
-  // Handle Save (Ctrl+S or Button)
+  // Handle Direct Save (Ctrl+S or Save Button)
   const handleSave = useCallback(async () => {
     if (!monthlyData || monthlyData.length === 0) return;
     setIsSaving(true);
@@ -206,12 +193,12 @@ export default function App() {
     showToast('✨ Data contoh master (2023 - 2026) berhasil dimuat!', 'success');
   };
 
-  // Handle Download Excel (.xlsx with charts)
-  const handleExportDownload = async () => {
+  // Handle Download Excel with Custom Name
+  const handleConfirmDownload = async (customFilename) => {
     try {
       showToast('⏳ Menyiapkan file Excel lengkap dengan grafik gambar...', 'info');
-      await exportAndDownloadExcel(monthlyData, fileName || 'Laporan_Keuangan_PUK.xlsx');
-      showToast('📥 File Excel 5 Sheet dengan grafik gambar berhasil diunduh!', 'success');
+      await exportAndDownloadExcel(monthlyData, customFilename || fileName);
+      showToast(`📥 File "${customFilename}" (5 Sheet + Grafik Gambar) berhasil diunduh!`, 'success');
     } catch (err) {
       console.error(err);
       showToast('Gagal mengekspor file: ' + err.message, 'error');
@@ -319,7 +306,7 @@ export default function App() {
           />
         </div>
       ) : (
-        /* App Layout: Sidebar + Navbar + Main Content + Footer */
+        /* App Layout: Desktop Sidebar / Mobile Drawer + Navbar + Main Content + Footer */
         <div className="flex min-h-screen">
           {/* Sidebar */}
           <Sidebar
@@ -335,8 +322,8 @@ export default function App() {
             onCloseMobile={() => setIsMobileSidebarOpen(false)}
           />
 
-          {/* Main Wrapper (Offset for Desktop Sidebar) */}
-          <div className="flex-1 flex flex-col lg:pl-72 min-w-0">
+          {/* Main Wrapper (Offset for Desktop Sidebar only on md+) */}
+          <div className="flex-1 flex flex-col md:pl-72 min-w-0">
             {/* Top Navbar */}
             <Navbar
               activeView={activeView}
@@ -347,12 +334,10 @@ export default function App() {
               isSaving={isSaving}
               isDirty={isDirty}
               hasDirectHandle={hasDirectHandle}
-              onExportDownload={handleExportDownload}
+              onOpenDownloadModal={() => setIsDownloadModalOpen(true)}
               onOpenUploadModal={() => setIsUploadModalOpen(true)}
               isDark={isDark}
               onToggleTheme={handleToggleTheme}
-              isLargeFont={isLargeFont}
-              onToggleFontSize={handleToggleFontSize}
             />
 
             {/* Main Content Area */}
@@ -381,7 +366,15 @@ export default function App() {
                 </>
               )}
 
-              {/* View 2: Rekap Pemasukan */}
+              {/* View 2: Analisa AI Keuangan */}
+              {activeView === 'ai_analysis' && (
+                <AIAnalysisSection
+                  monthlyData={monthlyData}
+                  selectedYear={selectedYear}
+                />
+              )}
+
+              {/* View 3: Rekap Pemasukan */}
               {activeView === 'rekap_pemasukan' && (
                 <RekapPemasukanTable
                   monthlyData={monthlyData}
@@ -389,7 +382,7 @@ export default function App() {
                 />
               )}
 
-              {/* View 3: Rekap Kategori */}
+              {/* View 4: Rekap Kategori */}
               {activeView === 'rekap_kategori' && (
                 <RekapKategoriTable
                   monthlyData={monthlyData}
@@ -397,7 +390,7 @@ export default function App() {
                 />
               )}
 
-              {/* View 4: Transaksi Detail Table */}
+              {/* View 5: Transaksi Detail Table */}
               {activeView === 'transaksi' && (
                 <div className="bg-white dark:bg-[#131b2e] border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-7 mb-8 shadow-sm overflow-hidden">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-200 dark:border-slate-800 mb-6">
@@ -617,7 +610,6 @@ export default function App() {
           isNew={false}
           allMonthlyData={monthlyData}
           onSaveMonth={handleSaveMonth}
-          isDark={isDark}
         />
       )}
 
@@ -630,13 +622,12 @@ export default function App() {
           isNew={true}
           allMonthlyData={monthlyData}
           onSaveMonth={handleSaveMonth}
-          isDark={isDark}
         />
       )}
 
       {/* Upload Modal */}
       {isUploadModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
           <div className="w-full max-w-2xl">
             <UploadZone
               onFileUploaded={handleFileUploaded}
@@ -647,6 +638,18 @@ export default function App() {
             />
           </div>
         </div>
+      )}
+
+      {/* Floating Download Dialog Modal */}
+      {isDownloadModalOpen && (
+        <DownloadDialogModal
+          isOpen={isDownloadModalOpen}
+          onClose={() => setIsDownloadModalOpen(false)}
+          defaultFilename={fileName}
+          onConfirmDownload={handleConfirmDownload}
+          monthlyData={monthlyData}
+          selectedYear={selectedYear}
+        />
       )}
 
       {/* Toast Notification */}

@@ -40,7 +40,7 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = true 
   const labels = filtered.map(d => `${d.month.slice(0, 3)} '${String(d.year).slice(-2)}`);
   
   const textColor = isDark ? '#94a3b8' : '#475569';
-  const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+  const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
   
   // 1. Cashflow Chart Data
   const cashflowChartData = {
@@ -50,7 +50,7 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = true 
         type: 'bar',
         label: 'Pemasukan',
         data: filtered.map(d => d.pemasukan),
-        backgroundColor: isDark ? 'rgba(52, 211, 153, 0.65)' : 'rgba(16, 185, 129, 0.8)',
+        backgroundColor: isDark ? 'rgba(52, 211, 153, 0.65)' : 'rgba(16, 185, 129, 0.85)',
         borderColor: isDark ? '#34d399' : '#059669',
         borderWidth: 1.5,
         borderRadius: 6,
@@ -60,7 +60,7 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = true 
         type: 'bar',
         label: 'Pengeluaran',
         data: filtered.map(d => d.totalPengeluaran),
-        backgroundColor: isDark ? 'rgba(248, 113, 113, 0.65)' : 'rgba(239, 68, 68, 0.8)',
+        backgroundColor: isDark ? 'rgba(248, 113, 113, 0.65)' : 'rgba(239, 68, 68, 0.85)',
         borderColor: isDark ? '#f87171' : '#dc2626',
         borderWidth: 1.5,
         borderRadius: 6,
@@ -206,8 +206,8 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = true 
         data: filtered.map(d => d.surplusDefisit),
         backgroundColor: filtered.map(d =>
           d.surplusDefisit >= 0
-            ? (isDark ? 'rgba(52, 211, 153, 0.7)' : 'rgba(16, 185, 129, 0.8)')
-            : (isDark ? 'rgba(248, 113, 113, 0.7)' : 'rgba(239, 68, 68, 0.8)')
+            ? (isDark ? 'rgba(52, 211, 153, 0.7)' : 'rgba(16, 185, 129, 0.85)')
+            : (isDark ? 'rgba(248, 113, 113, 0.7)' : 'rgba(239, 68, 68, 0.85)')
         ),
         borderColor: filtered.map(d =>
           d.surplusDefisit >= 0 ? '#059669' : '#dc2626'
@@ -302,12 +302,12 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = true 
       {/* Main Chart Body */}
       <div className="w-full h-80 sm:h-96 relative">
         {activeTab === 'cashflow' && (
-          <Bar data={cashflowChartData} options={cashflowOptions} />
+          <Bar key={`cashflow-${isDark ? 'dark' : 'light'}`} data={cashflowChartData} options={cashflowOptions} />
         )}
         {activeTab === 'category' && (
           <div className="w-full h-full flex flex-col lg:flex-row items-center justify-between gap-6">
             <div className="w-full lg:w-3/5 h-64 sm:h-full">
-              <Doughnut data={categoryDonutData} options={categoryOptions} />
+              <Doughnut key={`donut-${isDark ? 'dark' : 'light'}`} data={categoryDonutData} options={categoryOptions} />
             </div>
             {/* Top Categories Ranking */}
             <div className="w-full lg:w-2/5 flex flex-col gap-2.5 max-h-80 overflow-y-auto pr-1">
@@ -340,7 +340,7 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = true 
           </div>
         )}
         {activeTab === 'surplus' && (
-          <Bar data={surplusData} options={surplusOptions} />
+          <Bar key={`surplus-${isDark ? 'dark' : 'light'}`} data={surplusData} options={surplusOptions} />
         )}
       </div>
     </div>

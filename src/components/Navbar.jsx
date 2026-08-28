@@ -1,14 +1,12 @@
 import React from 'react';
 import { 
-  Menu, 
+  Menu,
   Plus, 
   Save, 
   Download, 
   Upload, 
   Sun, 
-  Moon, 
-  Type,
-  Sparkles
+  Moon
 } from 'lucide-react';
 
 export default function Navbar({
@@ -20,35 +18,35 @@ export default function Navbar({
   isSaving,
   isDirty,
   hasDirectHandle,
-  onExportDownload,
+  onOpenDownloadModal,
   onOpenUploadModal,
   isDark,
-  onToggleTheme,
-  isLargeFont,
-  onToggleFontSize
+  onToggleTheme
 }) {
   const viewTitles = {
-    dashboard: 'Dashboard Ringkasan & Buku Kas',
-    rekap_pemasukan: 'Rekapitulasi Pemasukan Kas Antar Tahun',
-    rekap_kategori: 'Rekapitulasi Pengeluaran Per Kategori',
-    transaksi: 'Daftar Master Seluruh Transaksi'
+    dashboard: 'Dashboard & Buku Kas',
+    ai_analysis: 'Analisa AI Keuangan',
+    rekap_pemasukan: 'Rekapitulasi Pemasukan Kas',
+    rekap_kategori: 'Rekapitulasi Kategori Pengeluaran',
+    transaksi: 'Daftar Master Transaksi'
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-white/95 dark:bg-[#0e1626]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 lg:px-8 py-3.5 transition-colors">
-      <div className="flex items-center justify-between gap-4">
-        {/* Left: Mobile hamburger & Page Title */}
-        <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-20 bg-white/95 dark:bg-[#0e1626]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 lg:px-8 py-3.5 transition-colors">
+      <div className="flex items-center justify-between gap-3">
+        {/* Left: Mobile Hamburger Button (md:hidden) + Title */}
+        <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={onOpenMobileMenu}
-            className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden border border-slate-200 dark:border-slate-800"
+            className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 transition shrink-0 active:scale-95"
+            title="Buka Menu"
           >
             <Menu className="w-5 h-5" />
           </button>
 
-          <div>
-            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-tight flex items-center gap-2">
-              <span>{viewTitles[activeView] || 'Dashboard'}</span>
+          <div className="min-w-0">
+            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-tight truncate">
+              {viewTitles[activeView] || 'Dashboard'}
             </h2>
             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
               <span>Periode: <strong className="text-slate-800 dark:text-slate-200">{selectedYear === 'all' ? 'Semua Tahun' : `Tahun ${selectedYear}`}</strong></span>
@@ -58,78 +56,64 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* Right: Actions & Theme Toggles */}
+        {/* Right: Uniform Actions & Theme Toggle */}
         <div className="flex items-center gap-2 sm:gap-2.5">
-          {/* Add Month */}
+          {/* 1. Tambah Bulan Button */}
           <button
             onClick={onOpenAddMonthModal}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20 transition active:scale-95"
+            className="inline-flex items-center justify-center gap-2 h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20 transition active:scale-95 shrink-0"
           >
-            <Plus className="w-4 h-4" />
-            <span className="hidden md:inline">Tambah Bulan</span>
+            <Plus className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline">Tambah Bulan</span>
           </button>
 
-          {/* Save Button */}
+          {/* 2. Simpan Button */}
           <button
             onClick={onSave}
             disabled={isSaving}
-            title={hasDirectHandle ? 'Simpan langsung ke file di disk' : 'Simpan / Download file'}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm active:scale-95 ${
+            title={hasDirectHandle ? 'Simpan langsung ke file di disk (Ctrl+S)' : 'Simpan / Download file'}
+            className={`inline-flex items-center justify-center gap-2 h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm active:scale-95 shrink-0 ${
               isDirty
-                ? 'bg-blue-600 text-white shadow-blue-600/25 hover:bg-blue-700'
+                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/25'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700'
             }`}
           >
-            <Save className={`w-4 h-4 ${isSaving ? 'animate-spin' : ''}`} />
-            <span className="hidden md:inline">{isSaving ? 'Menyimpan...' : hasDirectHandle ? 'Simpan (Ctrl+S)' : 'Simpan'}</span>
+            <Save className={`w-4 h-4 shrink-0 ${isSaving ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">{isSaving ? 'Menyimpan...' : 'Simpan File'}</span>
           </button>
 
-          {/* Export Excel Button */}
+          {/* 3. Unduh Excel Dialog Trigger */}
           <button
-            onClick={onExportDownload}
-            title="Download file Excel 5 Sheet lengkap dengan grafik gambar"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 transition active:scale-95"
+            onClick={onOpenDownloadModal}
+            title="Download file Excel dengan nama kustom"
+            className="inline-flex items-center justify-center gap-2 h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 transition active:scale-95 shrink-0"
           >
-            <Download className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
+            <Download className="w-4 h-4 text-blue-600 dark:text-cyan-400 shrink-0" />
             <span className="hidden lg:inline">Unduh Excel</span>
           </button>
 
-          {/* Upload / Switch File */}
+          {/* 4. Upload / Ganti File Button */}
           <button
             onClick={onOpenUploadModal}
             title="Upload atau ganti file Excel"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 transition active:scale-95"
+            className="inline-flex items-center justify-center gap-2 h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 transition active:scale-95 shrink-0"
           >
-            <Upload className="w-4 h-4" />
+            <Upload className="w-4 h-4 shrink-0" />
             <span className="hidden xl:inline">Ganti File</span>
           </button>
 
-          {/* Theme & Font Controls */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
-            <button
-              onClick={onToggleTheme}
-              title={isDark ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}
-              className="p-1.5 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition"
-            >
-              {isDark ? (
-                <Sun className="w-4 h-4 text-amber-400" />
-              ) : (
-                <Moon className="w-4 h-4 text-blue-600" />
-              )}
-            </button>
-
-            <button
-              onClick={onToggleFontSize}
-              title={isLargeFont ? 'Ukuran Teks Normal' : 'Perbesar Ukuran Teks (Ramah Lansia)'}
-              className={`p-1.5 rounded-lg text-xs font-bold transition ml-0.5 ${
-                isLargeFont 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
-              }`}
-            >
-              <Type className="w-4 h-4" />
-            </button>
-          </div>
+          {/* 5. Theme Toggle Button */}
+          <button
+            onClick={onToggleTheme}
+            title={isDark ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}
+            className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 transition shrink-0 active:scale-95"
+          >
+            {isDark ? (
+              <Sun className="w-4 h-4 text-amber-400" />
+            ) : (
+              <Moon className="w-4 h-4 text-blue-600" />
+            )}
+          </button>
         </div>
       </div>
     </header>

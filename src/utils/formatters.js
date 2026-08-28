@@ -19,10 +19,24 @@ export function formatShortRp(amount) {
   return `${sign}Rp ${abs.toLocaleString('id-ID')}`;
 }
 
+export function formatThousands(val) {
+  if (val === undefined || val === null || val === '') return '';
+  const num = typeof val === 'number' ? Math.round(val) : parseInt(String(val).replace(/\D/g, ''), 10);
+  if (isNaN(num)) return '';
+  return num.toLocaleString('id-ID');
+}
+
+export function parseThousands(val) {
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  if (!val) return 0;
+  const clean = String(val).replace(/\D/g, '');
+  const num = parseInt(clean, 10);
+  return isNaN(num) ? 0 : num;
+}
+
 export function parseNumber(val) {
   if (typeof val === 'number') return isNaN(val) ? 0 : val;
   if (!val) return 0;
-  // Remove Rp, commas, dots, spaces
   const clean = String(val).replace(/[^0-9.-]+/g, "");
   const num = parseFloat(clean);
   return isNaN(num) ? 0 : num;
@@ -53,7 +67,6 @@ export function recalculateAllMonths(monthlyList) {
   
   const sorted = [...monthlyList].sort((a, b) => {
     if (a.year !== b.year) return a.year - b.year;
-    // Map month names or period
     return (a.period || "").localeCompare(b.period || "");
   });
 
