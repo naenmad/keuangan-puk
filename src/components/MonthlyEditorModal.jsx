@@ -5,8 +5,7 @@ import {
   Trash2, 
   Save, 
   Calendar, 
-  AlertCircle, 
-  Sparkles
+  AlertCircle
 } from 'lucide-react';
 import { CATEGORIES, MONTH_NAMES } from '../data/defaultData';
 import { formatRp, parseThousands, formatThousands } from '../utils/formatters';
@@ -24,7 +23,7 @@ export default function MonthlyEditorModal({
   const [year, setYear] = useState(2026);
   const [month, setMonth] = useState('Januari');
   const [saldoAwalInput, setSaldoAwalInput] = useState('0');
-  const [pemasukanInput, setPemasukanInput] = useState('0');
+  const [pemasukanInput, setPemasukanInput] = useState('9.000.000');
   const [expenses, setExpenses] = useState([]);
   const [error, setError] = useState(null);
 
@@ -35,7 +34,7 @@ export default function MonthlyEditorModal({
       setSaldoAwalInput(formatThousands(initialData.saldoAwal ?? 0));
       setPemasukanInput(formatThousands(initialData.pemasukan ?? 0));
       setExpenses(
-        initialData.expenses
+        initialData.expenses && initialData.expenses.length > 0
           ? initialData.expenses.map(e => ({
               name: e.name,
               category: e.category,
@@ -47,7 +46,6 @@ export default function MonthlyEditorModal({
     } else {
       // Automatic next month determination
       if (allMonthlyData && allMonthlyData.length > 0) {
-        // Find latest chronological month
         const sorted = [...allMonthlyData].sort((a, b) => {
           if (a.year !== b.year) return a.year - b.year;
           return MONTH_NAMES.indexOf(a.month) - MONTH_NAMES.indexOf(b.month);
@@ -139,20 +137,47 @@ export default function MonthlyEditorModal({
     const period = `${year}-${monthStr}`;
 
     if (isNew) {
-      const exists = allMonthlyData.some(d => d.period === period);
+      const exists = (allMonthlyData || []).some(d => d.period === period);
       if (exists) {
         setError(`Periode ${month} ${year} (${period}) sudah ada dalam daftar. Pilih bulan/tahun lain atau edit data yang sudah ada.`);
         return;
       }
     }
 
-    const cleanedExpenses = expenses
-      .filter(e => e.name.trim() !== '' || (parseThousands(e.amountInput) || 0) > 0)
-      .map(e => ({
-        name: e.name,
-        category: e.category || 'Lain-lain',
-        amount: parseThousands(e.amountInput) || 0
-      }));
+    // STRICT VALIDATION 1: Cannot save if all nominals are 0
+    if (numPemasukan <= 0 && expenses.length === 0) {
+      setError('Nominal Pemasukan tidak boleh Rp 0. Mohon masukkan nominal yang valid.');
+      return;
+    }
+
+    // STRICT VALIDATION 2: Check all expense rows
+    for (let i = 0; i < expenses.length; i++) {
+      const exp = expenses[i];
+      const amountVal = parseThousands(exp.amountInput);
+      const nameVal = (exp.name || '').trim();
+
+      if (!nameVal && amountVal <= 0) {
+        // If an empty row exists, reject or ask user to delete row
+        setError(`Baris pengeluaran ke-${i + 1} masih kosong. Mohon isi nama dan nominal lebih dari Rp 0, atau hapus baris tersebut.`);
+        return;
+      }
+
+      if (!nameVal) {
+        setError(`Mohon isi nama transaksi untuk baris pengeluaran ke-${i + 1}.`);
+        return;
+      }
+
+      if (amountVal <= 0) {
+        setError(`Nominal pengeluaran untuk "${nameVal}" tidak boleh Rp 0. Mohon isi nominal lebih dari Rp 0.`);
+        return;
+      }
+    }
+
+    const cleanedExpenses = expenses.map(e => ({
+      name: e.name.trim(),
+      category: e.category || 'Lain-lain',
+      amount: parseThousands(e.amountInput)
+    }));
 
     const payload = {
       period,
@@ -209,13 +234,13 @@ export default function MonthlyEditorModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Bulan */}
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
                   Bulan
                 </label>
                 <select
                   value={month}
                   onChange={e => setMonth(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-3 text-sm sm:text-base text-slate-900 dark:text-white font-bold focus:outline-none focus:border-blue-600 cursor-pointer"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:border-blue-600 cursor-pointer"
                 >
                   {MONTH_NAMES.map(m => (
                     <option key={m} value={m} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
@@ -227,97 +252,78 @@ export default function MonthlyEditorModal({
 
               {/* Tahun */}
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
                   Tahun
                 </label>
                 <input
                   type="number"
-                  value={year}
-                  onChange={e => setYear(parseInt(e.target.value) || 2026)}
                   min="2020"
                   max="2035"
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-3 text-sm sm:text-base text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:border-blue-600"
+                  value={year}
+                  onChange={e => setYear(parseInt(e.target.value, 10))}
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:border-blue-600"
+                  required
                 />
               </div>
 
-              {/* Saldo Awal (Auto Formatted) */}
+              {/* Saldo Awal */}
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
                   Saldo Awal (Rp)
                 </label>
                 <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Rp</span>
                   <input
                     type="text"
                     value={saldoAwalInput}
                     onChange={e => setSaldoAwalInput(formatThousands(e.target.value))}
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-3.5 py-2.5 text-xs sm:text-sm font-bold font-mono text-slate-900 dark:text-white focus:outline-none focus:border-blue-600"
                     placeholder="0"
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-3 text-sm sm:text-base text-slate-900 dark:text-white font-mono font-bold focus:outline-none focus:border-blue-600 text-right pr-4"
                   />
-                  <span className="text-xs text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 font-bold pointer-events-none">Rp</span>
                 </div>
               </div>
 
-              {/* Pemasukan (Auto Formatted) */}
+              {/* Pemasukan Kas */}
               <div>
-                <label className="block text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1.5">
-                  Pemasukan Kas (Rp)
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                  Pemasukan Kas (Rp) <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-600">Rp</span>
                   <input
                     type="text"
                     value={pemasukanInput}
                     onChange={e => setPemasukanInput(formatThousands(e.target.value))}
+                    className={`w-full bg-slate-50 dark:bg-slate-900 border rounded-xl pl-9 pr-3.5 py-2.5 text-xs sm:text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400 focus:outline-none focus:border-blue-600 ${
+                      numPemasukan <= 0 ? 'border-rose-300 dark:border-rose-500' : 'border-slate-300 dark:border-slate-700'
+                    }`}
                     placeholder="9.000.000"
-                    className="w-full bg-emerald-50/50 dark:bg-slate-900 border border-emerald-300 dark:border-emerald-500/50 rounded-xl px-3.5 py-3 text-sm sm:text-base text-emerald-700 dark:text-emerald-300 font-mono font-bold focus:outline-none focus:border-emerald-500 text-right pr-4"
+                    required
                   />
-                  <span className="text-xs text-emerald-600/70 absolute left-3 top-1/2 -translate-y-1/2 font-bold pointer-events-none">Rp</span>
                 </div>
-              </div>
-            </div>
-
-            {/* Live Calculation Preview Banner */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
-              <div>
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">Saldo Awal:</span>
-                <p className="font-mono text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">
-                  {formatRp(numSaldoAwal)}
-                </p>
-              </div>
-              <div>
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">Pemasukan:</span>
-                <p className="font-mono text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400">
-                  +{formatRp(numPemasukan)}
-                </p>
-              </div>
-              <div>
-                <span className="text-xs text-rose-600 dark:text-rose-400 font-semibold">Total Pengeluaran:</span>
-                <p className="font-mono text-sm sm:text-base font-black text-rose-600 dark:text-rose-400">
-                  -{formatRp(totalExpense)}
-                </p>
-              </div>
-              <div>
-                <span className="text-xs text-blue-600 dark:text-cyan-400 font-semibold">Saldo Akhir:</span>
-                <p className="font-mono text-sm sm:text-base font-black text-blue-600 dark:text-cyan-400">
-                  {formatRp(saldoAkhir)}
-                </p>
-              </div>
-            </div>
-
-            {/* Expense Transaction Rows */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                    Pos Transaksi Pengeluaran
-                  </h4>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30">
-                    {expenses.length} Pos
+                {numPemasukan <= 0 && (
+                  <span className="text-[11px] text-rose-500 font-semibold mt-1 block">
+                    Nominal harus lebih dari Rp 0
                   </span>
+                )}
+              </div>
+            </div>
+
+            {/* Expenses List Section */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                    Pos Transaksi Pengeluaran Kas
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Setiap pos wajib memiliki nama dan nominal lebih dari Rp 0
+                  </p>
                 </div>
                 <button
                   type="button"
                   onClick={handleAddExpenseRow}
-                  className="flex items-center gap-1 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white transition-all active:scale-95 shadow-sm"
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-600 text-blue-600 dark:text-cyan-400 hover:text-white border border-blue-200 dark:border-blue-500/20 transition active:scale-95 shadow-sm"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Tambah Baris Pos</span>
@@ -325,95 +331,140 @@ export default function MonthlyEditorModal({
               </div>
 
               {expenses.length === 0 ? (
-                <div className="p-8 text-center border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl bg-slate-50 dark:bg-slate-900/30 text-slate-400 text-sm">
-                  Belum ada pos pengeluaran. Klik tombol "Tambah Baris Pos" di atas untuk menambahkan.
+                <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                  <p className="text-xs sm:text-sm text-slate-400 font-medium mb-3">
+                    Belum ada pos pengeluaran untuk bulan ini.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleAddExpenseRow}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white shadow-sm"
+                  >
+                    Tambah Pos Pengeluaran Pertama
+                  </button>
                 </div>
               ) : (
-                <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                  {expenses.map((exp, idx) => (
-                    <div
-                      key={idx}
-                      className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition"
-                    >
-                      <span className="w-6 text-center text-xs font-mono font-bold text-slate-400 shrink-0 hidden sm:block">
-                        {idx + 1}.
-                      </span>
+                <div className="space-y-2.5">
+                  {expenses.map((exp, idx) => {
+                    const rowAmount = parseThousands(exp.amountInput);
+                    const isZero = !exp.amountInput || rowAmount <= 0;
 
-                      {/* Nama Pos */}
-                      <div className="flex-1">
-                        <input
-                          type="text"
-                          placeholder="Nama Transaksi (contoh: Servis Mobil PUK)"
-                          value={exp.name}
-                          onChange={e => handleExpenseNameOrCategoryChange(idx, 'name', e.target.value)}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-white font-semibold focus:outline-none focus:border-blue-600 placeholder:text-slate-400"
-                        />
-                      </div>
-
-                      {/* Kategori */}
-                      <div className="w-full sm:w-52">
-                        <select
-                          value={exp.category || 'Lain-lain'}
-                          onChange={e => handleExpenseNameOrCategoryChange(idx, 'category', e.target.value)}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 dark:text-slate-200 font-semibold focus:outline-none focus:border-blue-600"
-                        >
-                          {CATEGORIES.filter(c => c !== 'Pemasukan Kas').map(cat => (
-                            <option key={cat} value={cat} className="bg-white dark:bg-slate-900">
-                              {cat}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Nominal (Auto Formatted separator) */}
-                      <div className="w-full sm:w-44 relative">
-                        <input
-                          type="text"
-                          placeholder="0"
-                          value={exp.amountInput || ''}
-                          onChange={e => handleExpenseAmountChange(idx, e.target.value)}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-rose-600 dark:text-rose-400 font-mono font-bold focus:outline-none focus:border-rose-500 placeholder:text-slate-400 text-right pr-3 pl-8"
-                        />
-                        <span className="text-[11px] text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 font-bold pointer-events-none">Rp</span>
-                      </div>
-
-                      {/* Delete */}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveExpenseRow(idx)}
-                        className="p-2.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 border border-transparent hover:border-rose-200 dark:hover:border-rose-500/30 transition shrink-0 self-end sm:self-auto"
-                        title="Hapus baris ini"
+                    return (
+                      <div
+                        key={idx}
+                        className={`flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 p-3 rounded-2xl border transition-all ${
+                          isZero 
+                            ? 'bg-rose-50/30 dark:bg-rose-500/5 border-rose-200 dark:border-rose-500/30' 
+                            : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800'
+                        }`}
                       >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
+                        <span className="w-6 text-center text-xs font-bold text-slate-400 shrink-0 hidden sm:inline">
+                          {idx + 1}.
+                        </span>
+
+                        {/* Name Input */}
+                        <div className="flex-1">
+                          <input
+                            type="text"
+                            value={exp.name}
+                            onChange={e => handleExpenseNameOrCategoryChange(idx, 'name', e.target.value)}
+                            placeholder="Keterangan pengeluaran (cth: Konsumsi rapat)"
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-blue-600"
+                            required
+                          />
+                        </div>
+
+                        {/* Category Selector */}
+                        <div className="w-full sm:w-52 shrink-0">
+                          <select
+                            value={exp.category}
+                            onChange={e => handleExpenseNameOrCategoryChange(idx, 'category', e.target.value)}
+                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-blue-600 cursor-pointer"
+                          >
+                            {CATEGORIES.filter(c => c !== 'Pemasukan Kas').map(cat => (
+                              <option key={cat} value={cat} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
+                                {cat}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Amount Input with Thousand Separator */}
+                        <div className="w-full sm:w-44 shrink-0 relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-rose-500">Rp</span>
+                          <input
+                            type="text"
+                            value={exp.amountInput || ''}
+                            onChange={e => handleExpenseAmountChange(idx, e.target.value)}
+                            placeholder="0"
+                            className={`w-full bg-white dark:bg-slate-900 border rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm font-bold font-mono text-rose-600 dark:text-rose-400 focus:outline-none focus:border-blue-600 ${
+                              isZero ? 'border-rose-400 dark:border-rose-500' : 'border-slate-300 dark:border-slate-700'
+                            }`}
+                            required
+                          />
+                        </div>
+
+                        {/* Delete Row Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveExpenseRow(idx)}
+                          title="Hapus baris ini"
+                          className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition shrink-0 self-end sm:self-center"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
+
+            {/* Calculated Monthly Summary Preview */}
+            <div className="bg-slate-50 dark:bg-slate-900/80 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs sm:text-sm font-mono">
+                <div>
+                  <span className="text-slate-400 block mb-1">Saldo Awal:</span>
+                  <span className="font-bold text-slate-700 dark:text-slate-300">{formatRp(numSaldoAwal)}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block mb-1">Pemasukan:</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">+{formatRp(numPemasukan)}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block mb-1">Total Belanja:</span>
+                  <span className="font-bold text-rose-600 dark:text-rose-400">-{formatRp(totalExpense)}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block mb-1">Saldo Akhir:</span>
+                  <span className="font-black text-blue-600 dark:text-cyan-400 text-sm">{formatRp(saldoAkhir)}</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Modal Footer */}
-          <div className="p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0e1626] flex items-center justify-between shrink-0">
-            <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1.5 font-medium">
-              <Sparkles className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
-              <span>Perubahan otomatis mengalir ke saldo bulan berikutnya</span>
+          {/* Modal Footer / Actions */}
+          <div className="p-5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-[#0e1626] shrink-0">
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Surplus Periode: <span className={`font-mono font-bold ${surplus >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600'}`}>
+                {surplus >= 0 ? '+' : ''}{formatRp(surplus)}
+              </span>
             </div>
 
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition"
+                className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
               >
                 Batal
               </button>
               <button
                 type="submit"
-                className="flex items-center gap-1.5 px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20 transition-all hover:scale-[1.02] active:scale-95"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20 transition active:scale-95"
               >
                 <Save className="w-4 h-4" />
-                <span>Simpan Perubahan</span>
+                <span>Simpan Periode Bulanan</span>
               </button>
             </div>
           </div>

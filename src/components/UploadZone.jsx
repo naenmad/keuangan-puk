@@ -92,7 +92,7 @@ export default function UploadZone({
           <button
             onClick={onCloseModal}
             className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition"
-            title="Tutup / Batal (✕)"
+            title="Tutup / Batal"
           >
             <X className="w-5 h-5" />
           </button>

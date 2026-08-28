@@ -216,7 +216,7 @@ export default function AIAnalysisSection({ monthlyData = [], selectedYear }) {
   const handleCopySummary = () => {
     if (!analysis) return;
     const report = `=====================================================
-📋 LAPORAN EKSEKUTIF ANALISA KEUANGAN PUK PT SAI (AI INTELLIGENCE)
+LAPORAN EKSEKUTIF ANALISA KEUANGAN PUK PT SAI (AI INTELLIGENCE)
 Periode Analisis: ${selectedYear === 'all' ? 'Seluruh Periode (2023 - 2026)' : `Tahun Buku ${selectedYear}`}
 =====================================================
 

@@ -108,7 +108,7 @@ export default function App() {
       setMonthlyData(recalculateAllMonths(saved));
       setIsLoaded(true);
       setFileName(getActiveFileName() || 'Laporan_Keuangan_PUK.xlsx');
-      showToast('📂 Data sesi sebelumnya berhasil dimuat dari browser.', 'info');
+      showToast('Data sesi sebelumnya berhasil dimuat dari browser.', 'info');
     }
   }, []);
 
@@ -128,9 +128,9 @@ export default function App() {
       const result = await saveFinancialDataToFile(monthlyData);
       setIsDirty(false);
       if (result.method === 'direct_write') {
-        showToast(`💾 Perubahan berhasil disimpan langsung ke file "${result.filename}" di disk!`, 'success');
+        showToast(`Perubahan berhasil disimpan langsung ke file "${result.filename}" di disk!`, 'success');
       } else {
-        showToast(`📥 File Excel "${result.filename}" berhasil diunduh dan disinkronkan!`, 'success');
+        showToast(`File Excel "${result.filename}" berhasil diunduh dan disinkronkan!`, 'success');
       }
     } catch (err) {
       console.error(err);
@@ -164,7 +164,7 @@ export default function App() {
     setHasDirectHandle(false);
     setIsDirty(false);
     saveToLocalStorage(parsed);
-    showToast(`✅ File "${file.name}" berhasil dimuat! ${parsed.length} periode bulan terbaca.`, 'success');
+    showToast(`File "${file.name}" berhasil dimuat. ${parsed.length} periode bulan terbaca.`, 'success');
   };
 
   // Handle Pick with Native File System API
@@ -177,7 +177,7 @@ export default function App() {
     setHasDirectHandle(true);
     setIsDirty(false);
     saveToLocalStorage(parsed);
-    showToast(`⚡ Live Direct Sync aktif untuk "${fileName}". Anda bisa menyimpan langsung dengan Ctrl+S!`, 'success');
+    showToast(`Live Direct Sync aktif untuk "${fileName}". Anda bisa menyimpan langsung dengan Ctrl+S.`, 'success');
   };
 
   // Handle Use Default Seed Data
@@ -190,15 +190,15 @@ export default function App() {
     setHasDirectHandle(false);
     setIsDirty(false);
     saveToLocalStorage(data);
-    showToast('✨ Data contoh master (2023 - 2026) berhasil dimuat!', 'success');
+    showToast('Data contoh master (2023 - 2026) berhasil dimuat.', 'success');
   };
 
   // Handle Download Excel with Custom Name
   const handleConfirmDownload = async (customFilename) => {
     try {
-      showToast('⏳ Menyiapkan file Excel lengkap dengan grafik gambar...', 'info');
+      showToast('Menyiapkan file Excel lengkap dengan grafik gambar...', 'info');
       await exportAndDownloadExcel(monthlyData, customFilename || fileName);
-      showToast(`📥 File "${customFilename}" (5 Sheet + Grafik Gambar) berhasil diunduh!`, 'success');
+      showToast(`File "${customFilename}" (5 Sheet + Grafik Gambar) berhasil diunduh.`, 'success');
     } catch (err) {
       console.error(err);
       showToast('Gagal mengekspor file: ' + err.message, 'error');
@@ -210,11 +210,11 @@ export default function App() {
     if (isNew) {
       const next = [...monthlyData, monthItem];
       updateData(next);
-      showToast(`✅ Periode ${monthItem.month} ${monthItem.year} berhasil ditambahkan!`, 'success');
+      showToast(`Periode ${monthItem.month} ${monthItem.year} berhasil ditambahkan.`, 'success');
     } else {
       const next = monthlyData.map(d => d.period === monthItem.period ? monthItem : d);
       updateData(next);
-      showToast(`✅ Perubahan ${monthItem.month} ${monthItem.year} berhasil disimpan! Saldo diperbarui.`, 'success');
+      showToast(`Perubahan ${monthItem.month} ${monthItem.year} berhasil disimpan. Saldo diperbarui.`, 'success');
     }
   };
 
@@ -223,7 +223,7 @@ export default function App() {
     if (window.confirm(`Yakin ingin menghapus periode bulan ${period}?`)) {
       const next = monthlyData.filter(d => d.period !== period);
       updateData(next);
-      showToast(`🗑️ Periode ${period} telah dihapus. Saldo berikutnya otomatis dihitung ulang.`, 'warning');
+      showToast(`Periode ${period} telah dihapus. Saldo berikutnya otomatis dihitung ulang.`, 'warning');
     }
   };
 
@@ -330,10 +330,6 @@ export default function App() {
               selectedYear={selectedYear}
               onOpenMobileMenu={() => setIsMobileSidebarOpen(true)}
               onOpenAddMonthModal={() => setIsAddMonthModalOpen(true)}
-              onSave={handleSave}
-              isSaving={isSaving}
-              isDirty={isDirty}
-              hasDirectHandle={hasDirectHandle}
               onOpenDownloadModal={() => setIsDownloadModalOpen(true)}
               onOpenUploadModal={() => setIsUploadModalOpen(true)}
               isDark={isDark}
