@@ -1,8 +1,10 @@
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
-import { Chart as ChartJS } from 'chart.js';
+import { Chart as ChartJS, registerables } from 'chart.js';
 import { CATEGORIES, MONTH_NAMES } from '../data/defaultData';
 import { recalculateAllMonths } from './formatters';
+
+ChartJS.register(...registerables);
 
 /**
  * Render chart to an offscreen canvas and return base64 data string

@@ -1,34 +1,14 @@
 import React, { useState } from 'react';
 import {
   Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
+  registerables
 } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import { BarChart3, PieChart, TrendingUp, Layers } from 'lucide-react';
 import { formatRp, formatShortRp } from '../utils/formatters';
 
-// Register Chart.js modules
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+// Register all Chart.js components and controllers (Bar, Line, Doughnut, Scales, etc.)
+ChartJS.register(...registerables);
 
 export default function ChartSection({ monthlyData = [], selectedYear, isDark = true }) {
   const [activeTab, setActiveTab] = useState('cashflow');
@@ -48,7 +28,7 @@ export default function ChartSection({ monthlyData = [], selectedYear, isDark = 
   const textColor = isDark ? '#94a3b8' : '#475569';
   const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
   
-  // 1. Cashflow Chart Data
+  // 1. Cashflow Chart Data (Mixed Bar + Line Chart)
   const cashflowChartData = {
     labels,
     datasets: [
