@@ -16,7 +16,7 @@ import {
 import { formatRp } from '../utils/formatters';
 
 export default function MonthlyTable({
-  monthlyData,
+  monthlyData = [],
   selectedYear,
   onEditMonth,
   onDeleteMonth,
@@ -27,9 +27,10 @@ export default function MonthlyTable({
   const [currentPage, setCurrentPage] = useState(1);
 
   const filtered = useMemo(() => {
+    if (!Array.isArray(monthlyData)) return [];
     return selectedYear === 'all'
       ? monthlyData
-      : monthlyData.filter(d => d.year === selectedYear);
+      : monthlyData.filter(d => d && d.year === selectedYear);
   }, [monthlyData, selectedYear]);
 
   React.useEffect(() => {
@@ -51,6 +52,7 @@ export default function MonthlyTable({
   const endIdxDisplay = pageSize === 'all' ? totalItems : Math.min(validCurrentPage * pageSize, totalItems);
 
   const toggleExpand = (period) => {
+    if (!period) return;
     setExpandedRows(prev => ({
       ...prev,
       [period]: !prev[period]
@@ -134,17 +136,17 @@ export default function MonthlyTable({
               </tr>
             ) : (
               paginatedData.map((d, idx) => {
-                const isExpanded = !!expandedRows[d.period];
-                const isPositive = d.surplusDefisit >= 0;
-                const expenseCount = (d.expenses || []).length;
+                const isExpanded = !!expandedRows[d?.period];
+                const isPositive = (d?.surplusDefisit || 0) >= 0;
+                const expenseCount = (d?.expenses || []).length;
 
                 return (
-                  <React.Fragment key={d.period || idx}>
+                  <React.Fragment key={d?.period || idx}>
                     <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors group">
                       {/* Expand Toggle */}
                       <td className="py-3.5 px-3 text-center">
                         <button
-                          onClick={() => toggleExpand(d.period)}
+                          onClick={() => toggleExpand(d?.period)}
                           title={isExpanded ? 'Tutup rincian' : 'Lihat rincian pengeluaran'}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700/50 transition"
                         >
@@ -158,7 +160,7 @@ export default function MonthlyTable({
 
                       {/* Period Badge */}
                       <td className="py-3.5 px-3 text-center font-mono font-semibold text-xs text-slate-500 dark:text-slate-400">
-                        {d.period}
+                        {d?.period || '-'}
                       </td>
 
                       {/* Month & Year */}
@@ -169,7 +171,7 @@ export default function MonthlyTable({
                               isPositive ? 'bg-emerald-500' : 'bg-rose-500'
                             }`}
                           />
-                          <span>{d.month} {d.year}</span>
+                          <span>{d?.month || ''} {d?.year || ''}</span>
                           <span className="text-xs text-slate-400 font-normal">
                             ({expenseCount} pos)
                           </span>
@@ -178,22 +180,22 @@ export default function MonthlyTable({
 
                       {/* Saldo Awal */}
                       <td className="py-3.5 px-4 text-right font-mono font-semibold text-slate-600 dark:text-slate-300">
-                        {formatRp(d.saldoAwal)}
+                        {formatRp(d?.saldoAwal)}
                       </td>
 
                       {/* Pemasukan */}
                       <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                        +{formatRp(d.pemasukan)}
+                        +{formatRp(d?.pemasukan)}
                       </td>
 
                       {/* Pengeluaran */}
                       <td className="py-3.5 px-4 text-right font-mono font-bold text-rose-600 dark:text-rose-400">
-                        -{formatRp(d.totalPengeluaran)}
+                        -{formatRp(d?.totalPengeluaran)}
                       </td>
 
                       {/* Saldo Akhir */}
                       <td className="py-3.5 px-4 text-right font-mono font-black text-blue-600 dark:text-cyan-400 text-sm">
-                        {formatRp(d.saldoAkhir)}
+                        {formatRp(d?.saldoAkhir)}
                       </td>
 
                       {/* Surplus / Defisit */}
@@ -206,7 +208,7 @@ export default function MonthlyTable({
                           }`}
                         >
                           {isPositive ? '+' : ''}
-                          {formatRp(d.surplusDefisit)}
+                          {formatRp(d?.surplusDefisit)}
                         </span>
                       </td>
 
@@ -222,7 +224,7 @@ export default function MonthlyTable({
                             <span>Edit</span>
                           </button>
                           <button
-                            onClick={() => onDeleteMonth(d.period)}
+                            onClick={() => onDeleteMonth(d?.period)}
                             title="Hapus periode bulan ini"
                             className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-600 text-rose-600 dark:text-rose-400 hover:text-white border border-rose-200 dark:border-rose-500/20 transition-all active:scale-95"
                           >
@@ -240,7 +242,7 @@ export default function MonthlyTable({
                             <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-200 dark:border-slate-800">
                               <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-blue-600 dark:text-cyan-400 flex items-center gap-1.5">
                                 <Sparkles className="w-4 h-4 text-amber-500" />
-                                Rincian Transaksi Pengeluaran ({d.month} {d.year})
+                                Rincian Transaksi Pengeluaran ({d?.month} {d?.year})
                               </h4>
                               <button
                                 onClick={() => onEditMonth(d)}
@@ -251,7 +253,7 @@ export default function MonthlyTable({
                               </button>
                             </div>
 
-                            {(!d.expenses || d.expenses.length === 0) ? (
+                            {(!d?.expenses || d.expenses.length === 0) ? (
                               <p className="text-xs sm:text-sm text-slate-400 italic py-2">
                                 Belum ada rincian pengeluaran untuk bulan ini.
                               </p>
@@ -263,13 +265,13 @@ export default function MonthlyTable({
                                     className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-xs sm:text-sm"
                                   >
                                     <div className="min-w-0 pr-2">
-                                      <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{exp.name}</p>
+                                      <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{exp?.name || 'Pos Pengeluaran'}</p>
                                       <span className="text-[11px] text-slate-500 dark:text-slate-400 bg-slate-200/80 dark:bg-slate-800 px-2 py-0.5 rounded font-semibold mt-1 inline-block border border-slate-300 dark:border-slate-700">
-                                        {exp.category || 'Lain-lain'}
+                                        {exp?.category || 'Lain-lain'}
                                       </span>
                                     </div>
                                     <div className="font-mono font-black text-rose-600 dark:text-rose-400 shrink-0 text-sm">
-                                      -{formatRp(exp.amount)}
+                                      -{formatRp(exp?.amount)}
                                     </div>
                                   </div>
                                 ))}

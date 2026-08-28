@@ -3,7 +3,7 @@ import { Layers } from 'lucide-react';
 import { CATEGORIES } from '../data/defaultData';
 import { formatRp } from '../utils/formatters';
 
-export default function RekapKategoriTable({ monthlyData, availableYears }) {
+export default function RekapKategoriTable({ monthlyData = [], availableYears = [] }) {
   const years = availableYears.length > 0 ? availableYears : [2024];
   const activeCategories = CATEGORIES.filter(c => c !== 'Pemasukan Kas');
 
@@ -20,12 +20,12 @@ export default function RekapKategoriTable({ monthlyData, availableYears }) {
 
     years.forEach(yr => {
       let sum = 0;
-      monthlyData
-        .filter(d => d.year === yr)
+      (Array.isArray(monthlyData) ? monthlyData : [])
+        .filter(d => d && d.year === yr)
         .forEach(d => {
-          (d.expenses || []).forEach(e => {
-            if ((e.category || 'Lain-lain').trim().toLowerCase() === cat.trim().toLowerCase()) {
-              sum += (e.amount || 0);
+          (d?.expenses || []).forEach(e => {
+            if (String(e?.category || 'Lain-lain').trim().toLowerCase() === cat.trim().toLowerCase()) {
+              sum += (e?.amount || 0);
             }
           });
         });
@@ -72,7 +72,7 @@ export default function RekapKategoriTable({ monthlyData, availableYears }) {
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 font-mono font-medium">
             {activeCategories.map((cat, idx) => {
-              const row = matrix[cat];
+              const row = matrix[cat] || { yearly: {}, total: 0 };
               const pct = grandTotal > 0 ? ((row.total / grandTotal) * 100).toFixed(1) : '0.0';
 
               return (

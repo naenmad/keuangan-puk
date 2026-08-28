@@ -4,101 +4,163 @@ import { recalculateAllMonths, parseNumber } from './formatters';
 
 export async function parseExcelFile(file) {
   const arrayBuffer = await file.arrayBuffer();
-  const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+  const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
 
-  // Priority 1: Check if 'Data_Transaksi' and 'Laporan_Bulanan' exist
-  const sheetNames = workbook.SheetNames;
-  
-  if (sheetNames.includes('Data_Transaksi')) {
-    const txSheet = workbook.Sheets['Data_Transaksi'];
-    const txRows = XLSX.utils.sheet_to_json(txSheet, { header: 1 });
-    
-    // Check if Laporan_Bulanan exists for initial Saldo Awal reference
-    let monthlySeedMap = {};
-    if (sheetNames.includes('Laporan_Bulanan')) {
-      const mSheet = workbook.Sheets['Laporan_Bulanan'];
-      const mRows = XLSX.utils.sheet_to_json(mSheet, { header: 1 });
-      
-      // Find header row in Laporan_Bulanan
-      let headerIdx = -1;
-      for (let r = 0; r < Math.min(mRows.length, 10); r++) {
-        const row = mRows[r];
-        if (row && row.some(cell => String(cell).toLowerCase().includes('periode') || String(cell).toLowerCase().includes('saldo awal'))) {
-          headerIdx = r;
+  const sheetNames = workbook.SheetNames || [];
+  if (sheetNames.length === 0) {
+    throw new Error('File Excel tidak memiliki sheet yang valid.');
+  }
+
+  // --- STRATEGY 1: Parse Multi-sheet Format (Data_Transaksi & Laporan_Bulanan) ---
+  const hasDataTransaksi = sheetNames.some(s => s.toLowerCase().replace(/[\s_-]+/g, '') === 'datatransaksi');
+  const hasLaporanBulanan = sheetNames.some(s => s.toLowerCase().replace(/[\s_-]+/g, '') === 'laporanbulanan');
+
+  if (hasDataTransaksi || hasLaporanBulanan) {
+    const monthlyMap = {};
+
+    // 1. First parse Laporan_Bulanan for base months and initial Saldo Awal
+    if (hasLaporanBulanan) {
+      const sheetName = sheetNames.find(s => s.toLowerCase().replace(/[\s_-]+/g, '') === 'laporanbulanan');
+      const ws = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+      let headerRowIdx = -1;
+      let colMap = { periode: 0, tahun: 1, bulan: 2, saldoAwal: 3, pemasukan: 4, pengeluaran: 5 };
+
+      // Locate header row
+      for (let r = 0; r < Math.min(rows.length, 12); r++) {
+        const row = rows[r];
+        if (!Array.isArray(row)) continue;
+        const text = row.map(c => String(c).toLowerCase()).join(' ');
+        if (text.includes('periode') || (text.includes('saldo awal') && text.includes('bulan'))) {
+          headerRowIdx = r;
+          // Dynamically detect column indices
+          row.forEach((cellVal, cIdx) => {
+            const h = String(cellVal).toLowerCase().trim();
+            if (h === 'periode' || h.includes('periode')) colMap.periode = cIdx;
+            else if (h === 'tahun' || h.includes('tahun')) colMap.tahun = cIdx;
+            else if (h === 'bulan' || h.includes('bulan')) colMap.bulan = cIdx;
+            else if (h.includes('saldo awal')) colMap.saldoAwal = cIdx;
+            else if (h.includes('pemasukan')) colMap.pemasukan = cIdx;
+            else if (h.includes('pengeluaran')) colMap.pengeluaran = cIdx;
+          });
           break;
         }
       }
 
-      if (headerIdx !== -1) {
-        for (let r = headerIdx + 1; r < mRows.length; r++) {
-          const row = mRows[r];
-          if (!row || row.length < 5) continue;
+      const startRow = headerRowIdx !== -1 ? headerRowIdx + 1 : 0;
+      for (let r = startRow; r < rows.length; r++) {
+        const row = rows[r];
+        if (!Array.isArray(row) || row.length === 0) continue;
+
+        let periodVal = String(row[colMap.periode] || '').trim();
+        let yearVal = parseInt(row[colMap.tahun]) || null;
+        let monthVal = String(row[colMap.bulan] || '').trim();
+
+        // Extract from period string if needed (e.g. "2023-01")
+        if (periodVal && /^\d{4}-\d{1,2}$/.test(periodVal)) {
+          const parts = periodVal.split('-');
+          const y = parseInt(parts[0], 10);
+          const mNum = parseInt(parts[1], 10);
+          const formattedPeriod = `${y}-${String(mNum).padStart(2, '0')}`;
           
-          // Let's inspect column values: Periode(B), Bulan(C), Tahun(D), Saldo Awal(E), Pemasukan(F)
-          const periode = String(row[1] || '').trim();
-          const bulan = String(row[2] || '').trim();
-          const tahun = parseInt(row[3]) || null;
-          const saldoAwal = parseNumber(row[4]);
-          const pemasukan = parseNumber(row[5]);
-          
-          if (periode && /^\d{4}-\d{2}$/.test(periode)) {
-            monthlySeedMap[periode] = {
-              period: periode,
-              year: tahun || parseInt(periode.split('-')[0]),
-              month: bulan,
-              saldoAwal: saldoAwal || 0,
-              pemasukan: pemasukan || 0,
-              expenses: []
-            };
+          if (!yearVal) yearVal = y;
+          if (!monthVal && mNum >= 1 && mNum <= 12) {
+            monthVal = MONTH_NAMES[mNum - 1];
           }
+
+          monthlyMap[formattedPeriod] = {
+            period: formattedPeriod,
+            year: yearVal || y,
+            month: monthVal || 'Januari',
+            saldoAwal: parseNumber(row[colMap.saldoAwal]),
+            pemasukan: parseNumber(row[colMap.pemasukan]),
+            expenses: []
+          };
         }
       }
     }
 
-    // Now parse Data_Transaksi
-    // Row headers usually at row 4 (1-indexed) or similar
-    let txHeaderIdx = -1;
-    for (let r = 0; r < Math.min(txRows.length, 10); r++) {
-      const row = txRows[r];
-      if (row && row.some(cell => String(cell).toLowerCase().includes('nama transaksi') || String(cell).toLowerCase().includes('kategori'))) {
-        txHeaderIdx = r;
-        break;
+    // 2. Parse Data_Transaksi for detail expense items and income
+    if (hasDataTransaksi) {
+      const sheetName = sheetNames.find(s => s.toLowerCase().replace(/[\s_-]+/g, '') === 'datatransaksi');
+      const ws = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+      let txHeaderIdx = -1;
+      let txColMap = { periode: 0, tahun: 1, bulan: 2, nama: 4, kategori: 5, tipe: 6, nominal: 7 };
+
+      for (let r = 0; r < Math.min(rows.length, 12); r++) {
+        const row = rows[r];
+        if (!Array.isArray(row)) continue;
+        const text = row.map(c => String(c).toLowerCase()).join(' ');
+        if (text.includes('transaksi') || text.includes('kategori') || text.includes('nominal')) {
+          txHeaderIdx = r;
+          row.forEach((cellVal, cIdx) => {
+            const h = String(cellVal).toLowerCase().trim();
+            if (h === 'periode' || h.includes('periode')) txColMap.periode = cIdx;
+            else if (h === 'tahun' || h.includes('tahun')) txColMap.tahun = cIdx;
+            else if (h === 'bulan' || h.includes('bulan')) txColMap.bulan = cIdx;
+            else if (h.includes('keterangan') || h.includes('nama transaksi') || h.includes('transaksi')) txColMap.nama = cIdx;
+            else if (h === 'kategori' || h.includes('kategori')) txColMap.kategori = cIdx;
+            else if (h === 'tipe' || h.includes('tipe') || h.includes('jenis')) txColMap.tipe = cIdx;
+            else if (h.includes('nominal') || h.includes('jumlah')) txColMap.nominal = cIdx;
+          });
+          break;
+        }
       }
-    }
 
-    if (txHeaderIdx !== -1) {
-      for (let r = txHeaderIdx + 1; r < txRows.length; r++) {
-        const row = txRows[r];
-        if (!row || row.length < 6) continue;
-        
-        // Data_Transaksi format:
-        // Col A: No, Col B: Periode, Col C: Tahun, Col D: Bulan, Col E: No, Col F: Nama Transaksi, Col G: Kategori, Col H: Tipe, Col I: Nominal
-        const periode = String(row[1] || '').trim();
-        const tahun = parseInt(row[2]) || (periode ? parseInt(periode.split('-')[0]) : 2024);
-        const bulan = String(row[3] || '').trim();
-        const nama = String(row[5] || '').trim();
-        const kategori = String(row[6] || 'Lain-lain').trim();
-        const tipe = String(row[7] || '').trim().toLowerCase();
-        const nominal = parseNumber(row[8] !== undefined ? row[8] : row[7]);
+      const txStartRow = txHeaderIdx !== -1 ? txHeaderIdx + 1 : 0;
+      for (let r = txStartRow; r < rows.length; r++) {
+        const row = rows[r];
+        if (!Array.isArray(row) || row.length === 0) continue;
 
-        if (!periode || !/^\d{4}-\d{2}$/.test(periode)) continue;
+        let periodVal = String(row[txColMap.periode] || '').trim();
+        let yearVal = parseInt(row[txColMap.tahun]) || null;
+        let monthVal = String(row[txColMap.bulan] || '').trim();
+        let nama = String(row[txColMap.nama] || '').trim();
+        let kategori = String(row[txColMap.kategori] || 'Lain-lain').trim();
+        let tipe = String(row[txColMap.tipe] || '').trim().toLowerCase();
+        let nominal = parseNumber(row[txColMap.nominal]);
 
-        if (!monthlySeedMap[periode]) {
-          monthlySeedMap[periode] = {
-            period: periode,
-            year: tahun,
-            month: bulan || getMonthNameFromPeriod(periode),
+        if (!nama && nominal === 0) continue;
+
+        // Normalize period
+        let periodKey = '';
+        if (periodVal && /^\d{4}-\d{1,2}$/.test(periodVal)) {
+          const parts = periodVal.split('-');
+          periodKey = `${parts[0]}-${String(parts[1]).padStart(2, '0')}`;
+          if (!yearVal) yearVal = parseInt(parts[0], 10);
+          if (!monthVal) monthVal = getMonthNameFromPeriod(periodKey);
+        } else if (yearVal && monthVal) {
+          const mIdx = MONTH_NAMES.indexOf(monthVal);
+          const mStr = mIdx >= 0 ? String(mIdx + 1).padStart(2, '0') : '01';
+          periodKey = `${yearVal}-${mStr}`;
+        }
+
+        if (!periodKey) continue;
+
+        if (!monthlyMap[periodKey]) {
+          monthlyMap[periodKey] = {
+            period: periodKey,
+            year: yearVal || parseInt(periodKey.split('-')[0], 10) || 2024,
+            month: monthVal || getMonthNameFromPeriod(periodKey),
             saldoAwal: 0,
             pemasukan: 0,
             expenses: []
           };
         }
 
-        if (tipe === 'pemasukan' || nama.toLowerCase().includes('iuran') || nama.toLowerCase().includes('pemasukan kas')) {
-          monthlySeedMap[periode].pemasukan = nominal;
-        } else if (nama) {
-          monthlySeedMap[periode].expenses.push({
-            name: nama,
+        const isIncome = tipe === 'pemasukan' || 
+          kategori.toLowerCase().includes('pemasukan') || 
+          nama.toLowerCase().includes('iuran') || 
+          nama.toLowerCase().includes('pemasukan kas');
+
+        if (isIncome) {
+          monthlyMap[periodKey].pemasukan = (monthlyMap[periodKey].pemasukan || 0) + nominal;
+        } else if (nama || nominal > 0) {
+          monthlyMap[periodKey].expenses.push({
+            name: nama || 'Pengeluaran Kas',
             category: kategori || 'Lain-lain',
             amount: nominal
           });
@@ -106,51 +168,75 @@ export async function parseExcelFile(file) {
       }
     }
 
-    const monthlyList = Object.values(monthlySeedMap);
+    const monthlyList = Object.values(monthlyMap);
     if (monthlyList.length > 0) {
       return recalculateAllMonths(monthlyList);
     }
   }
 
-  // Fallback: Parse any tabular sheet
-  const firstSheet = workbook.Sheets[sheetNames[0]];
-  const rawData = XLSX.utils.sheet_to_json(firstSheet);
-  
-  if (rawData && rawData.length > 0) {
-    const list = rawData.map((item, idx) => {
-      const month = item['Bulan'] || item['bulan'] || item['Month'] || `Bulan ${idx+1}`;
-      const year = parseInt(item['Tahun'] || item['tahun'] || item['Year']) || 2024;
-      const saldoAwal = parseNumber(item['Saldo Awal (Rp)'] || item['Saldo Awal'] || item['saldoAwal'] || 0);
-      const pemasukan = parseNumber(item['Pemasukan (Rp)'] || item['Pemasukan'] || item['pemasukan'] || 0);
-      const pengeluaran = parseNumber(item['Pengeluaran (Rp)'] || item['Total Pengeluaran (Rp)'] || item['pengeluaran'] || 0);
+  // --- STRATEGY 2: Fallback for any standard single sheet table ---
+  for (const sName of sheetNames) {
+    const ws = workbook.Sheets[sName];
+    const rawData = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+    if (rawData && rawData.length > 0) {
+      const sample = rawData[0];
+      const keys = Object.keys(sample);
+
+      const hasMonthLike = keys.some(k => k.toLowerCase().includes('bulan') || k.toLowerCase().includes('month') || k.toLowerCase().includes('periode'));
       
-      const mIdx = MONTH_NAMES.indexOf(month);
-      const monthStr = mIdx >= 0 ? String(mIdx + 1).padStart(2, '0') : '01';
-      const period = `${year}-${monthStr}`;
+      if (hasMonthLike) {
+        const list = rawData.map((item, idx) => {
+          let month = findValueByKeywords(item, ['bulan', 'month', 'nama bulan']) || `Bulan ${idx + 1}`;
+          let year = parseInt(findValueByKeywords(item, ['tahun', 'year'])) || new Date().getFullYear();
+          let saldoAwal = parseNumber(findValueByKeywords(item, ['saldo awal', 'saldo_awal', 'awal']));
+          let pemasukan = parseNumber(findValueByKeywords(item, ['pemasukan', 'income', 'masuk', 'iuran']));
+          let pengeluaran = parseNumber(findValueByKeywords(item, ['total pengeluaran', 'pengeluaran', 'expense', 'keluar']));
+          
+          let mIdx = MONTH_NAMES.indexOf(month);
+          let monthStr = mIdx >= 0 ? String(mIdx + 1).padStart(2, '0') : String(idx + 1).padStart(2, '0');
+          let period = `${year}-${monthStr}`;
 
-      return {
-        period,
-        year,
-        month,
-        saldoAwal,
-        pemasukan,
-        expenses: pengeluaran > 0 ? [{ name: 'Total Pengeluaran', category: 'Lain-lain', amount: pengeluaran }] : []
-      };
-    });
+          return {
+            period,
+            year,
+            month: typeof month === 'string' ? month : `Bulan ${idx + 1}`,
+            saldoAwal,
+            pemasukan,
+            expenses: pengeluaran > 0 ? [{ name: 'Total Pengeluaran Kas', category: 'Lain-lain', amount: pengeluaran }] : []
+          };
+        });
 
-    return recalculateAllMonths(list);
+        const validList = list.filter(d => d.pemasukan > 0 || d.expenses.length > 0 || d.saldoAwal > 0);
+        if (validList.length > 0) {
+          return recalculateAllMonths(validList);
+        }
+      }
+    }
   }
 
-  throw new Error("Format file Excel tidak dikenali atau kosong.");
+  throw new Error("Format file Excel tidak dikenali atau lembar kerja kosong. Pastikan file memiliki data transaksi/laporan bulanan.");
+}
+
+function findValueByKeywords(obj, keywords) {
+  if (!obj || typeof obj !== 'object') return null;
+  const keys = Object.keys(obj);
+  for (const kw of keywords) {
+    const matchedKey = keys.find(k => k.toLowerCase().trim() === kw || k.toLowerCase().includes(kw));
+    if (matchedKey && obj[matchedKey] !== undefined && obj[matchedKey] !== '') {
+      return obj[matchedKey];
+    }
+  }
+  return null;
 }
 
 function getMonthNameFromPeriod(period) {
-  const parts = period.split('-');
+  const parts = String(period || '').split('-');
   if (parts.length === 2) {
     const monthNum = parseInt(parts[1], 10);
     if (monthNum >= 1 && monthNum <= 12) {
       return MONTH_NAMES[monthNum - 1];
     }
   }
-  return period;
+  return period || 'Januari';
 }

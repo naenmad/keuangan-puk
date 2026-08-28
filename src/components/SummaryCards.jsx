@@ -10,16 +10,19 @@ import {
 } from 'lucide-react';
 import { formatRp, formatShortRp } from '../utils/formatters';
 
-export default function SummaryCards({ monthlyData, selectedYear }) {
-  const filtered = selectedYear === 'all' 
-    ? monthlyData 
-    : monthlyData.filter(d => d.year === selectedYear);
+export default function SummaryCards({ monthlyData = [], selectedYear }) {
+  const filtered = Array.isArray(monthlyData)
+    ? selectedYear === 'all' 
+      ? monthlyData 
+      : monthlyData.filter(d => d && d.year === selectedYear)
+    : [];
 
-  const totalPemasukan = filtered.reduce((s, d) => s + (d.pemasukan || 0), 0);
-  const totalPengeluaran = filtered.reduce((s, d) => s + (d.totalPengeluaran || 0), 0);
+  const totalPemasukan = filtered.reduce((s, d) => s + (d?.pemasukan || 0), 0);
+  const totalPengeluaran = filtered.reduce((s, d) => s + (d?.totalPengeluaran || 0), 0);
   const netSurplus = totalPemasukan - totalPengeluaran;
   
-  const latestSaldo = filtered.length > 0 ? filtered[filtered.length - 1].saldoAkhir : 0;
+  const latestItem = filtered.length > 0 ? filtered[filtered.length - 1] : null;
+  const latestSaldo = latestItem ? (latestItem.saldoAkhir || 0) : 0;
   const avgMonthlySurplus = filtered.length > 0 ? netSurplus / filtered.length : 0;
   const isPositiveSurplus = netSurplus >= 0;
 
@@ -41,8 +44,8 @@ export default function SummaryCards({ monthlyData, selectedYear }) {
         <div className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
           <Calendar className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
           <span>
-            {filtered.length > 0
-              ? `Posisi ${filtered[filtered.length - 1].month} ${filtered[filtered.length - 1].year}`
+            {latestItem
+              ? `Posisi ${latestItem.month || ''} ${latestItem.year || ''}`
               : 'Tidak ada data'}
           </span>
         </div>

@@ -30,14 +30,20 @@ ChartJS.register(
   Filler
 );
 
-export default function ChartSection({ monthlyData, selectedYear, isDark = true }) {
+export default function ChartSection({ monthlyData = [], selectedYear, isDark = true }) {
   const [activeTab, setActiveTab] = useState('cashflow');
 
-  const filtered = selectedYear === 'all'
-    ? monthlyData
-    : monthlyData.filter(d => d.year === selectedYear);
+  const filtered = Array.isArray(monthlyData)
+    ? selectedYear === 'all'
+      ? monthlyData
+      : monthlyData.filter(d => d && d.year === selectedYear)
+    : [];
 
-  const labels = filtered.map(d => `${d.month.slice(0, 3)} '${String(d.year).slice(-2)}`);
+  const labels = filtered.map(d => {
+    const mStr = typeof d?.month === 'string' ? d.month : String(d?.month || '');
+    const yStr = String(d?.year || '');
+    return `${mStr.slice(0, 3)} '${yStr.slice(-2)}`;
+  });
   
   const textColor = isDark ? '#94a3b8' : '#475569';
   const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
@@ -49,7 +55,7 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = true 
       {
         type: 'bar',
         label: 'Pemasukan',
-        data: filtered.map(d => d.pemasukan),
+        data: filtered.map(d => d?.pemasukan || 0),
         backgroundColor: isDark ? 'rgba(52, 211, 153, 0.65)' : 'rgba(16, 185, 129, 0.85)',
         borderColor: isDark ? '#34d399' : '#059669',
         borderWidth: 1.5,
@@ -59,7 +65,7 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = true 
       {
         type: 'bar',
         label: 'Pengeluaran',
-        data: filtered.map(d => d.totalPengeluaran),
+        data: filtered.map(d => d?.totalPengeluaran || 0),
         backgroundColor: isDark ? 'rgba(248, 113, 113, 0.65)' : 'rgba(239, 68, 68, 0.85)',
         borderColor: isDark ? '#f87171' : '#dc2626',
         borderWidth: 1.5,
@@ -69,7 +75,7 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = true 
       {
         type: 'line',
         label: 'Saldo Akhir Kas',
-        data: filtered.map(d => d.saldoAkhir),
+        data: filtered.map(d => d?.saldoAkhir || 0),
         borderColor: isDark ? '#22d3ee' : '#2563eb',
         backgroundColor: isDark ? '#22d3ee' : '#2563eb',
         borderWidth: 3,
@@ -138,9 +144,9 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = true 
   // 2. Category Donut Data
   const catTotals = {};
   filtered.forEach(d => {
-    (d.expenses || []).forEach(e => {
-      const cat = e.category || 'Lain-lain';
-      catTotals[cat] = (catTotals[cat] || 0) + (e.amount || 0);
+    (d?.expenses || []).forEach(e => {
+      const cat = e?.category || 'Lain-lain';
+      catTotals[cat] = (catTotals[cat] || 0) + (e?.amount || 0);
     });
   });
 
@@ -203,14 +209,14 @@ export default function ChartSection({ monthlyData, selectedYear, isDark = true 
     datasets: [
       {
         label: 'Surplus / Defisit Bulanan',
-        data: filtered.map(d => d.surplusDefisit),
+        data: filtered.map(d => d?.surplusDefisit || 0),
         backgroundColor: filtered.map(d =>
-          d.surplusDefisit >= 0
+          (d?.surplusDefisit || 0) >= 0
             ? (isDark ? 'rgba(52, 211, 153, 0.7)' : 'rgba(16, 185, 129, 0.85)')
             : (isDark ? 'rgba(248, 113, 113, 0.7)' : 'rgba(239, 68, 68, 0.85)')
         ),
         borderColor: filtered.map(d =>
-          d.surplusDefisit >= 0 ? '#059669' : '#dc2626'
+          (d?.surplusDefisit || 0) >= 0 ? '#059669' : '#dc2626'
         ),
         borderWidth: 1.5,
         borderRadius: 4

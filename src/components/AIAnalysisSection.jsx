@@ -18,21 +18,22 @@ import {
 } from 'lucide-react';
 import { formatRp, formatShortRp } from '../utils/formatters';
 
-export default function AIAnalysisSection({ monthlyData, selectedYear }) {
+export default function AIAnalysisSection({ monthlyData = [], selectedYear }) {
   const [copied, setCopied] = useState(false);
 
   const filtered = useMemo(() => {
+    if (!Array.isArray(monthlyData)) return [];
     return selectedYear === 'all'
       ? monthlyData
-      : monthlyData.filter(d => d.year === selectedYear);
+      : monthlyData.filter(d => d && d.year === selectedYear);
   }, [monthlyData, selectedYear]);
 
   // AI Analytics computation
   const analysis = useMemo(() => {
     if (!filtered || filtered.length === 0) return null;
 
-    const totalPemasukan = filtered.reduce((s, d) => s + (d.pemasukan || 0), 0);
-    const totalPengeluaran = filtered.reduce((s, d) => s + (d.totalPengeluaran || 0), 0);
+    const totalPemasukan = filtered.reduce((s, d) => s + (d?.pemasukan || 0), 0);
+    const totalPengeluaran = filtered.reduce((s, d) => s + (d?.totalPengeluaran || 0), 0);
     const netSurplus = totalPemasukan - totalPengeluaran;
     const avgMonthlyIncome = totalPemasukan / filtered.length;
     const avgMonthlyExpense = totalPengeluaran / filtered.length;
@@ -46,9 +47,9 @@ export default function AIAnalysisSection({ monthlyData, selectedYear }) {
     // Category breakdown
     const catMap = {};
     filtered.forEach(d => {
-      (d.expenses || []).forEach(e => {
-        const cat = e.category || 'Lain-lain';
-        catMap[cat] = (catMap[cat] || 0) + (e.amount || 0);
+      (d?.expenses || []).forEach(e => {
+        const cat = e?.category || 'Lain-lain';
+        catMap[cat] = (catMap[cat] || 0) + (e?.amount || 0);
       });
     });
 
@@ -61,7 +62,7 @@ export default function AIAnalysisSection({ monthlyData, selectedYear }) {
     if (netSurplus > 0) score += 20;
     if (savingRate >= 20) score += 15;
     else if (savingRate > 0) score += 5;
-    if (latestSaldo > avgMonthlyExpense * 3) score += 15; // >3 months runway
+    if (latestSaldo > avgMonthlyExpense * 3) score += 15;
     else if (latestSaldo > avgMonthlyExpense) score += 10;
     if (expenseRatio <= 75) score += 5;
 

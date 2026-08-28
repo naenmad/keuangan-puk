@@ -3,14 +3,14 @@ import { TrendingUp } from 'lucide-react';
 import { MONTH_NAMES } from '../data/defaultData';
 import { formatRp } from '../utils/formatters';
 
-export default function RekapPemasukanTable({ monthlyData, availableYears }) {
+export default function RekapPemasukanTable({ monthlyData = [], availableYears = [] }) {
   const years = availableYears.length > 0 ? availableYears : [2024];
 
   const yearTotals = {};
   years.forEach(yr => {
-    yearTotals[yr] = monthlyData
-      .filter(d => d.year === yr)
-      .reduce((sum, d) => sum + (d.pemasukan || 0), 0);
+    yearTotals[yr] = (Array.isArray(monthlyData) ? monthlyData : [])
+      .filter(d => d && d.year === yr)
+      .reduce((sum, d) => sum + (d?.pemasukan || 0), 0);
   });
 
   const grandTotal = Object.values(yearTotals).reduce((a, b) => a + b, 0);
@@ -53,10 +53,10 @@ export default function RekapPemasukanTable({ monthlyData, availableYears }) {
                   <td className="py-3.5 px-3 text-center text-slate-400 font-sans">{idx + 1}</td>
                   <td className="py-3.5 px-4 font-sans font-bold text-slate-800 dark:text-slate-200">{mName}</td>
                   {years.map(yr => {
-                    const match = monthlyData.find(
-                      d => d.year === yr && d.month.toLowerCase() === mName.toLowerCase()
+                    const match = (Array.isArray(monthlyData) ? monthlyData : []).find(
+                      d => d && d.year === yr && String(d?.month || '').toLowerCase() === mName.toLowerCase()
                     );
-                    const val = match ? match.pemasukan : 0;
+                    const val = match ? (match.pemasukan || 0) : 0;
                     rowTotal += val;
                     return (
                       <td key={yr} className="py-3.5 px-4 text-right text-slate-600 dark:text-slate-300">
