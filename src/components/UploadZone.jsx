@@ -2,8 +2,6 @@ import React, { useState, useRef } from 'react';
 import { 
   UploadCloud, 
   FileSpreadsheet, 
-  Sparkles, 
-  ArrowRight, 
   HardDrive, 
   ShieldCheck, 
   X 
@@ -12,7 +10,6 @@ import { isFileSystemAccessSupported } from '../utils/fileSystemSync';
 
 export default function UploadZone({ 
   onFileUploaded, 
-  onUseDefaultData, 
   onPickWithNativeHandle,
   isModal = false,
   onCloseModal
@@ -155,54 +152,31 @@ export default function UploadZone({
           </div>
         </div>
 
-        {/* Actions Grid: Native File Handle & Default Seed */}
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
-          {/* Option 1: Native File Picker for direct live save */}
-          {hasFSA && (
+        {/* Native File Handle Action if supported */}
+        {hasFSA && (
+          <div className="mt-6">
             <button
               onClick={handleNativePick}
               disabled={isProcessing}
-              className="flex items-start gap-3.5 p-4 rounded-2xl bg-white dark:bg-[#131b2e] border border-slate-200 dark:border-slate-800 hover:border-blue-500 hover:shadow-md transition-all group shadow-sm"
+              className="w-full flex items-center justify-center gap-3.5 p-4 rounded-2xl bg-white dark:bg-[#131b2e] border border-slate-200 dark:border-slate-800 hover:border-blue-500 hover:shadow-md transition-all group shadow-sm"
             >
               <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:text-white text-blue-600 dark:text-cyan-400 transition-colors">
                 <HardDrive className="w-5 h-5" />
               </div>
-              <div>
+              <div className="text-left">
                 <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-slate-200 text-xs sm:text-sm">
-                  <span>Pilih & Direct Save</span>
+                  <span>Pilih File dengan Direct Save</span>
                   <span className="px-1.5 py-0.2 rounded text-[10px] bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-500/30">
-                    Live
+                    Live Sync
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Bisa simpan langsung ke file di disk dengan Ctrl+S.
+                  Bisa simpan perubahan langsung ke file Excel di disk dengan Ctrl+S.
                 </p>
               </div>
             </button>
-          )}
-
-          {/* Option 2: Default Sample Data */}
-          <button
-            onClick={onUseDefaultData}
-            disabled={isProcessing}
-            className={`flex items-start gap-3.5 p-4 rounded-2xl bg-white dark:bg-[#131b2e] border border-slate-200 dark:border-slate-800 hover:border-emerald-500 hover:shadow-md transition-all group shadow-sm ${
-              !hasFSA ? 'sm:col-span-2' : ''
-            }`}
-          >
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white text-emerald-600 dark:text-emerald-400 transition-colors">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="font-bold text-slate-900 dark:text-slate-200 text-xs sm:text-sm flex items-center gap-1">
-                <span>Gunakan Data Contoh Master</span>
-                <ArrowRight className="w-3.5 h-3.5 text-emerald-600 group-hover:translate-x-1 transition-transform" />
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Master data keuangan PUK PT SAI (2023 - 2026).
-              </p>
-            </div>
-          </button>
-        </div>
+          </div>
+        )}
 
         {/* Privacy Note */}
         <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">

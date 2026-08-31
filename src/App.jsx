@@ -14,7 +14,7 @@ import {
   Bot
 } from 'lucide-react';
 
-import { DEFAULT_MONTHLY_SEED, CATEGORIES } from './data/defaultData';
+import { CATEGORIES } from './data/defaultData';
 import { recalculateAllMonths, formatRp } from './utils/formatters';
 import { parseExcelFile } from './utils/excelParser';
 import { exportAndDownloadExcel } from './utils/excelGenerator';
@@ -180,19 +180,6 @@ export default function App() {
     showToast(`Live Direct Sync aktif untuk "${fileName}". Anda bisa menyimpan langsung dengan Ctrl+S.`, 'success');
   };
 
-  // Handle Use Default Seed Data
-  const handleUseDefaultData = () => {
-    const data = recalculateAllMonths(DEFAULT_MONTHLY_SEED);
-    setMonthlyData(data);
-    setIsLoaded(true);
-    setFileName('Laporan_Keuangan_PUK.xlsx');
-    setActiveFileName('Laporan_Keuangan_PUK.xlsx');
-    setHasDirectHandle(false);
-    setIsDirty(false);
-    saveToLocalStorage(data);
-    showToast('Data contoh master (2023 - 2026) berhasil dimuat.', 'success');
-  };
-
   // Handle Download Excel with Custom Name
   const handleConfirmDownload = async (customFilename) => {
     try {
@@ -302,7 +289,6 @@ export default function App() {
           <UploadZone
             onFileUploaded={handleFileUploaded}
             onPickWithNativeHandle={handlePickWithNativeHandle}
-            onUseDefaultData={handleUseDefaultData}
           />
         </div>
       ) : (
@@ -628,7 +614,6 @@ export default function App() {
             <UploadZone
               onFileUploaded={handleFileUploaded}
               onPickWithNativeHandle={handlePickWithNativeHandle}
-              onUseDefaultData={handleUseDefaultData}
               isModal={true}
               onCloseModal={() => setIsUploadModalOpen(false)}
             />
