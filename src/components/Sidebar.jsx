@@ -5,7 +5,6 @@ import {
   Layers, 
   FileSpreadsheet, 
   Calendar, 
-  HardDrive, 
   Check, 
   Bot, 
   X 
@@ -18,7 +17,6 @@ export default function Sidebar({
   selectedYear,
   onSelectYear,
   fileName,
-  hasDirectHandle,
   isDirty,
   isOpenMobile,
   onCloseMobile
@@ -157,10 +155,10 @@ export default function Sidebar({
           </div>
         </div>
 
-        {/* Bottom Section: Active File Status Badge */}
+        {/* Bottom Section: Active File Info */}
         <div className="p-4 border-t border-slate-200 dark:border-slate-800/80 bg-slate-50/50 dark:bg-[#0a0e1a]/40">
           <div className="flex items-center gap-2 mb-1.5">
-            <HardDrive className={`w-3.5 h-3.5 ${hasDirectHandle ? 'text-emerald-500' : 'text-slate-400'}`} />
+            <FileSpreadsheet className="w-4 h-4 text-emerald-500 shrink-0" />
             <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate" title={fileName}>
               {fileName || 'Laporan_Keuangan.xlsx'}
             </span>

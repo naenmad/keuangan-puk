@@ -5,10 +5,8 @@ TUTORIAL PANDUAN PENGGUNAAN APLIKASI LAPORAN KEUANGAN PUK PT SAI
 LANGKAH 1: MEMULAI APLIKASI
 
 1. Buka aplikasi di browser.
-2. Pada layar awal, pilih salah satu:
-   - Klik "Pilih File dari Komputer" jika ingin mengunggah file Excel (.xlsx) yang ada.
-   - ATAU klik "Gunakan Data Contoh Master" jika ingin langsung mencoba aplikasi dengan data contoh tahun 2023 - 2026.
-3. Dashboard utama akan langsung terbuka.
+2. Pada layar awal, klik area upload atau tarik file Excel (.xlsx) yang ingin dibuka.
+3. Dashboard utama akan langsung terbuka beserta visualisasi grafik dan rekapitulasi data.
 
 
 LANGKAH 2: MENAMBAH LAPORAN BULAN BARU
@@ -59,7 +57,7 @@ LANGKAH 6: MENGUNDUH LAPORAN KE EXCEL (.XLSX)
 
 1. Klik tombol biru "Unduh Excel" di kanan atas (Navbar).
 2. Akan muncul kotak dialog konfirmasi:
-   - Nama file default otomatis menggunakan tanggal hari ini, misalnya: "Laporan Keuangan PUK (28 Agustus 2026).xlsx"
+   - Nama file default otomatis terisi rapi sesuai tanggal berjalan.
    - Anda bisa mengganti nama file jika diinginkan.
 3. Klik "Unduh Sekarang".
 4. File Excel lengkap (5 Sheet + Grafik Gambar + Rumus SUM asli) akan otomatis terunduh ke komputer/HP Anda.

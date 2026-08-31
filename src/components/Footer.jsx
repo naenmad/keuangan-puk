@@ -11,16 +11,14 @@ export default function Footer() {
             Laporan Keuangan PUK PT SAI
           </span>
           <span>•</span>
-          <span>Excel Live Sync</span>
+          <span>Dashboard Neraca Kas</span>
         </div>
 
         <div className="flex items-center gap-3 text-[11px]">
           <span className="flex items-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-            Pemrosesan Lokal Aman
+            Pemrosesan Lokal Aman di Browser
           </span>
-          <span>•</span>
-          <span>Shortcut <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-mono font-bold text-slate-700 dark:text-slate-300">Ctrl+S</kbd></span>
         </div>
       </div>
     </footer>

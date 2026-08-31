@@ -19,8 +19,6 @@ import { recalculateAllMonths, formatRp } from './utils/formatters';
 import { parseExcelFile } from './utils/excelParser';
 import { exportAndDownloadExcel } from './utils/excelGenerator';
 import { 
-  pickExcelFileWithHandle, 
-  saveFinancialDataToFile,
   saveToLocalStorage,
   loadFromLocalStorage,
   getActiveFileName,
@@ -45,11 +43,9 @@ export default function App() {
   const [monthlyData, setMonthlyData] = useState([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [fileName, setFileName] = useState('Laporan_Keuangan_PUK.xlsx');
-  const [hasDirectHandle, setHasDirectHandle] = useState(false);
   const [selectedYear, setSelectedYear] = useState('all');
   const [activeView, setActiveView] = useState('dashboard'); // 'dashboard' | 'ai_analysis' | 'rekap_pemasukan' | 'rekap_kategori' | 'transaksi'
   const [isDirty, setIsDirty] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState(null);
 
   // Mobile sidebar drawer state
@@ -120,40 +116,6 @@ export default function App() {
     saveToLocalStorage(recalculated);
   }, []);
 
-  // Handle Direct Save (Ctrl+S or Save Button)
-  const handleSave = useCallback(async () => {
-    if (!monthlyData || monthlyData.length === 0) return;
-    setIsSaving(true);
-    try {
-      const result = await saveFinancialDataToFile(monthlyData);
-      setIsDirty(false);
-      if (result.method === 'direct_write') {
-        showToast(`Perubahan berhasil disimpan langsung ke file "${result.filename}" di disk!`, 'success');
-      } else {
-        showToast(`File Excel "${result.filename}" berhasil diunduh dan disinkronkan!`, 'success');
-      }
-    } catch (err) {
-      console.error(err);
-      showToast('Gagal menyimpan file: ' + err.message, 'error');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [monthlyData]);
-
-  // Keyboard shortcut Ctrl+S / Cmd+S
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        if (isLoaded) {
-          handleSave();
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isLoaded, handleSave]);
-
   // Handle File Upload
   const handleFileUploaded = async (file) => {
     const parsed = await parseExcelFile(file);
@@ -161,23 +123,9 @@ export default function App() {
     setIsLoaded(true);
     setFileName(file.name);
     setActiveFileName(file.name);
-    setHasDirectHandle(false);
     setIsDirty(false);
     saveToLocalStorage(parsed);
     showToast(`File "${file.name}" berhasil dimuat. ${parsed.length} periode bulan terbaca.`, 'success');
-  };
-
-  // Handle Pick with Native File System API
-  const handlePickWithNativeHandle = async () => {
-    const { file, fileHandle, fileName } = await pickExcelFileWithHandle();
-    const parsed = await parseExcelFile(file);
-    setMonthlyData(parsed);
-    setIsLoaded(true);
-    setFileName(fileName);
-    setHasDirectHandle(true);
-    setIsDirty(false);
-    saveToLocalStorage(parsed);
-    showToast(`Live Direct Sync aktif untuk "${fileName}". Anda bisa menyimpan langsung dengan Ctrl+S.`, 'success');
   };
 
   // Handle Download Excel with Custom Name
@@ -288,7 +236,6 @@ export default function App() {
         <div className="min-h-screen flex items-center justify-center p-4">
           <UploadZone
             onFileUploaded={handleFileUploaded}
-            onPickWithNativeHandle={handlePickWithNativeHandle}
           />
         </div>
       ) : (
@@ -302,7 +249,6 @@ export default function App() {
             selectedYear={selectedYear}
             onSelectYear={setSelectedYear}
             fileName={fileName}
-            hasDirectHandle={hasDirectHandle}
             isDirty={isDirty}
             isOpenMobile={isMobileSidebarOpen}
             onCloseMobile={() => setIsMobileSidebarOpen(false)}
@@ -613,7 +559,6 @@ export default function App() {
           <div className="w-full max-w-2xl">
             <UploadZone
               onFileUploaded={handleFileUploaded}
-              onPickWithNativeHandle={handlePickWithNativeHandle}
               isModal={true}
               onCloseModal={() => setIsUploadModalOpen(false)}
             />
