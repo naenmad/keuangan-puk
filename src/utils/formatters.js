@@ -37,9 +37,12 @@ export function parseThousands(val) {
 export function parseNumber(val) {
   if (typeof val === 'number') return isNaN(val) ? 0 : val;
   if (!val) return 0;
-  const clean = String(val).replace(/[^0-9.-]+/g, "");
+  const str = String(val).trim();
+  const isNegative = (str.startsWith('(') && str.endsWith(')')) || str.startsWith('-');
+  const clean = str.replace(/[^0-9.]+/g, "");
   const num = parseFloat(clean);
-  return isNaN(num) ? 0 : num;
+  if (isNaN(num)) return 0;
+  return isNegative ? -num : num;
 }
 
 export function calculateMonthTotals(monthData) {

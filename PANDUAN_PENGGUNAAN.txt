@@ -1,0 +1,65 @@
+TUTORIAL PANDUAN PENGGUNAAN APLIKASI LAPORAN KEUANGAN PUK PT SAI
+(Langkah-demi-Langkah / Prosedural)
+
+
+LANGKAH 1: MEMULAI APLIKASI
+
+1. Buka aplikasi di browser.
+2. Pada layar awal, pilih salah satu:
+   - Klik "Pilih File dari Komputer" jika ingin mengunggah file Excel (.xlsx) yang ada.
+   - ATAU klik "Gunakan Data Contoh Master" jika ingin langsung mencoba aplikasi dengan data contoh tahun 2023 - 2026.
+3. Dashboard utama akan langsung terbuka.
+
+
+LANGKAH 2: MENAMBAH LAPORAN BULAN BARU
+
+1. Klik tombol hijau "Tambah Bulan" di kanan atas (Navbar).
+2. Periksa form yang muncul:
+   - Bulan & Tahun: Otomatis terisi bulan berikutnya dari data terakhir.
+   - Saldo Awal: Otomatis terisi dari sisa saldo akhir bulan sebelumnya.
+   - Pemasukan Kas: Masukkan nominal uang masuk (contoh ketik 9000000 -> otomatis 9.000.000).
+3. Isi Rincian Pengeluaran:
+   - Tulis Keterangan Pengeluaran (contoh: "Konsumsi Rapat Pleno").
+   - Pilih Kategori.
+   - Masukkan Nominal uang keluar (nominal tidak boleh Rp 0).
+   - Klik "+ Tambah Baris Pos" jika ada lebih dari satu pos pengeluaran.
+4. Klik tombol "Simpan Periode Bulanan". Data otomatis terhitung dan masuk ke tabel.
+
+
+LANGKAH 3: MENGUBAH (EDIT) ATAU MENGHAPUS DATA BULANAN
+
+1. Pada tabel di halaman Dashboard, cari baris bulan yang ingin diubah.
+2. Klik tombol "Edit":
+   - Ubah angka pemasukan atau rincian pengeluaran sesuai kebutuhan.
+   - Klik "Simpan Periode Bulanan".
+3. Jika ingin menghapus:
+   - Klik tombol ikon Tempat Sampah di baris bulan tersebut.
+   - Konfirmasi hapus, dan saldo bulan-bulan berikutnya otomatis disesuaikan.
+
+
+LANGKAH 4: MENGGUNAKAN FITUR ANALISA AI KEUANGAN
+
+1. Klik menu "Analisa AI Keuangan" di sidebar kiri (atau ikon menu pada HP).
+2. Anda akan melihat ringkasan pintar:
+   - Skor Kesehatan Keuangan (0 - 100).
+   - Ketahanan Kas (berapa bulan kas bertahan).
+   - Pos belanja yang paling boros / menyerap dana terbesar.
+   - Simulasi kas skenario Krisis / Optimis.
+3. Klik tombol "Salin Laporan Eksekutif" jika ingin membagikan hasil analisa ke grup WhatsApp pengurus atau notulen rapat.
+
+
+LANGKAH 5: MELIHAT REKAP & MENCARI TRANSAKSI
+
+1. Rekap Pemasukan : Klik menu "Rekap Pemasukan" untuk melihat perbandingan uang masuk Januari-Desember tiap tahun.
+2. Rekap Kategori  : Klik menu "Rekap Kategori" untuk melihat total pengeluaran per pos.
+3. Cari Transaksi  : Klik menu "Semua Data Transaksi" untuk mencari transaksi tertentu menggunakan kolom pencarian (Search).
+
+
+LANGKAH 6: MENGUNDUH LAPORAN KE EXCEL (.XLSX)
+
+1. Klik tombol biru "Unduh Excel" di kanan atas (Navbar).
+2. Akan muncul kotak dialog konfirmasi:
+   - Nama file default otomatis menggunakan tanggal hari ini, misalnya: "Laporan Keuangan PUK (28 Agustus 2026).xlsx"
+   - Anda bisa mengganti nama file jika diinginkan.
+3. Klik "Unduh Sekarang".
+4. File Excel lengkap (5 Sheet + Grafik Gambar + Rumus SUM asli) akan otomatis terunduh ke komputer/HP Anda.
