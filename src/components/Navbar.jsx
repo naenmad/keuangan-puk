@@ -5,7 +5,10 @@ import {
   Download, 
   Upload, 
   Sun, 
-  Moon
+  Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Sidebar as SidebarIcon
 } from 'lucide-react';
 
 export default function Navbar({
@@ -16,7 +19,10 @@ export default function Navbar({
   onOpenDownloadModal,
   onOpenUploadModal,
   isDark,
-  onToggleTheme
+  onToggleTheme,
+  sidebarMode = 'expanded',
+  onToggleSidebarMode,
+  onToggleSidebarVisibility
 }) {
   const viewTitles = {
     dashboard: 'Dashboard & Buku Kas',
@@ -29,8 +35,24 @@ export default function Navbar({
   return (
     <header className="sticky top-0 z-20 bg-white/95 dark:bg-[#0e1626]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 px-4 sm:px-6 lg:px-8 py-3.5 transition-colors">
       <div className="flex items-center justify-between gap-3">
-        {/* Left: Mobile Hamburger Button (md:hidden) + Title */}
+        {/* Left: Sidebar Toggle & Mobile Hamburger + Title */}
         <div className="flex items-center gap-3 min-w-0">
+          {/* Desktop Sidebar Toggle Button */}
+          <button
+            onClick={onToggleSidebarVisibility || onToggleSidebarMode}
+            className="hidden md:inline-flex items-center justify-center w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 transition shrink-0 active:scale-95"
+            title={sidebarMode === 'hidden' ? "Tampilkan Sidebar" : sidebarMode === 'compact' ? "Perluas Sidebar" : "Perkecil/Sembunyikan Sidebar"}
+          >
+            {sidebarMode === 'hidden' ? (
+              <PanelLeftOpen className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+            ) : sidebarMode === 'compact' ? (
+              <SidebarIcon className="w-5 h-5 text-blue-600 dark:text-cyan-400" />
+            ) : (
+              <PanelLeftClose className="w-5 h-5" />
+            )}
+          </button>
+
+          {/* Mobile Hamburger */}
           <button
             onClick={onOpenMobileMenu}
             className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 transition shrink-0 active:scale-95"

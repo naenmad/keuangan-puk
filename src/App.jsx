@@ -51,11 +51,44 @@ export default function App() {
   // Mobile sidebar drawer state
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
+  // Sidebar Mode: 'expanded' (w-72) | 'compact' (w-20 icon-only) | 'hidden' (w-0 / full screen)
+  const [sidebarMode, setSidebarMode] = useState(() => {
+    const saved = localStorage.getItem('neraca_sidebar_mode');
+    return saved || 'expanded';
+  });
+
   // Soothing Dark Mode / Clean Light Mode state (Controlled via Navbar)
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('neraca_theme');
     return saved === 'dark' || saved === null;
   });
+
+  const handleToggleSidebarMode = () => {
+    setSidebarMode(prev => {
+      let next;
+      if (prev === 'expanded') next = 'compact';
+      else if (prev === 'compact') next = 'expanded';
+      else next = 'expanded';
+      localStorage.setItem('neraca_sidebar_mode', next);
+      return next;
+    });
+  };
+
+  const handleToggleSidebarVisibility = () => {
+    setSidebarMode(prev => {
+      let next;
+      if (prev === 'hidden') next = 'expanded';
+      else next = 'hidden';
+      localStorage.setItem('neraca_sidebar_mode', next);
+      return next;
+    });
+  };
+
+  const handleHideSidebar = () => {
+    setSidebarMode('hidden');
+    localStorage.setItem('neraca_sidebar_mode', 'hidden');
+    showToast('Sidebar disembunyikan. Klik ikon di navbar untuk menampilkan kembali.', 'info');
+  };
 
   // Modals
   const [editingMonth, setEditingMonth] = useState(null);
@@ -252,10 +285,19 @@ export default function App() {
             isDirty={isDirty}
             isOpenMobile={isMobileSidebarOpen}
             onCloseMobile={() => setIsMobileSidebarOpen(false)}
+            sidebarMode={sidebarMode}
+            onToggleSidebarMode={handleToggleSidebarMode}
+            onHideSidebar={handleHideSidebar}
           />
 
-          {/* Main Wrapper (Offset for Desktop Sidebar only on md+) */}
-          <div className="flex-1 flex flex-col md:pl-72 min-w-0">
+          {/* Main Wrapper (Offset for Desktop Sidebar dynamically) */}
+          <div className={`flex-1 flex flex-col ${
+            sidebarMode === 'expanded' 
+              ? 'md:pl-72' 
+              : sidebarMode === 'compact' 
+                ? 'md:pl-20' 
+                : 'md:pl-0'
+          } min-w-0 transition-all duration-300`}>
             {/* Top Navbar */}
             <Navbar
               activeView={activeView}
@@ -266,6 +308,9 @@ export default function App() {
               onOpenUploadModal={() => setIsUploadModalOpen(true)}
               isDark={isDark}
               onToggleTheme={handleToggleTheme}
+              sidebarMode={sidebarMode}
+              onToggleSidebarMode={handleToggleSidebarMode}
+              onToggleSidebarVisibility={handleToggleSidebarVisibility}
             />
 
             {/* Main Content Area */}
