@@ -41,11 +41,13 @@ import AIAnalysisSection from './components/AIAnalysisSection';
 import RekapPemasukanTable from './components/RekapPemasukanTable';
 import RekapKategoriTable from './components/RekapKategoriTable';
 import LoginModal from './components/LoginModal';
+import ChangePasswordModal from './components/ChangePasswordModal';
 import Toast from './components/Toast';
 
 export default function App() {
   const [isAdmin, setIsAdmin] = useState(() => isAdminUser());
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [monthlyData, setMonthlyData] = useState(() => {
     const saved = loadFromLocalStorage();
     if (saved && Array.isArray(saved) && saved.length > 0) {
@@ -360,6 +362,7 @@ export default function App() {
               isAdmin={isAdmin}
               onOpenLoginModal={() => setIsLoginModalOpen(true)}
               onLogout={handleLogout}
+              onOpenChangePasswordModal={() => setIsChangePasswordModalOpen(true)}
               onRefreshCloud={handleRefreshCloud}
               isSyncing={isSyncing}
             />
@@ -692,6 +695,13 @@ export default function App() {
           setIsAdmin(true);
           showToast('Selamat datang, Admin Keuangan! Hak akses edit aktif.', 'success');
         }}
+      />
+
+      {/* Admin Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={isChangePasswordModalOpen}
+        onClose={() => setIsChangePasswordModalOpen(false)}
+        onSuccess={(msg) => showToast(msg, 'success')}
       />
     </div>
   );

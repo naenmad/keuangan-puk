@@ -31,6 +31,7 @@ export default function Navbar({
   isAdmin = false,
   onOpenLoginModal,
   onLogout,
+  onOpenChangePasswordModal,
   onRefreshCloud,
   isSyncing = false
 }) {
@@ -147,16 +148,27 @@ export default function Navbar({
             <span className="hidden md:inline">Unduh</span>
           </button>
 
-          {/* Login / Logout Button */}
+          {/* Login / Logout & Change Password */}
           {isAdmin ? (
-            <button
-              onClick={onLogout}
-              title="Keluar dari sesi Administrator"
-              className="inline-flex items-center justify-center gap-1.5 h-8 sm:h-9 px-2 sm:px-3 rounded-xl text-xs font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800/60 transition active:scale-95 shrink-0"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Keluar</span>
-            </button>
+            <>
+              <button
+                onClick={onOpenChangePasswordModal}
+                title="Ganti Password Admin Keuangan"
+                className="inline-flex items-center justify-center gap-1.5 h-8 sm:h-9 px-2 sm:px-2.5 rounded-xl text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-200 dark:border-amber-800/60 transition active:scale-95 shrink-0"
+              >
+                <Key className="w-3.5 h-3.5" />
+                <span className="hidden xl:inline">Password</span>
+              </button>
+
+              <button
+                onClick={onLogout}
+                title="Keluar dari sesi Administrator"
+                className="inline-flex items-center justify-center gap-1.5 h-8 sm:h-9 px-2 sm:px-3 rounded-xl text-xs font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800/60 transition active:scale-95 shrink-0"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden md:inline">Keluar</span>
+              </button>
+            </>
           ) : (
             <button
               onClick={onOpenLoginModal}
