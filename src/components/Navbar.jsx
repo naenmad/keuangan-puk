@@ -8,7 +8,11 @@ import {
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
-  Sidebar as SidebarIcon
+  Sidebar as SidebarIcon,
+  Lock,
+  LogOut,
+  ShieldCheck,
+  Eye
 } from 'lucide-react';
 
 export default function Navbar({
@@ -22,7 +26,10 @@ export default function Navbar({
   onToggleTheme,
   sidebarMode = 'expanded',
   onToggleSidebarMode,
-  onToggleSidebarVisibility
+  onToggleSidebarVisibility,
+  isAdmin = false,
+  onOpenLoginModal,
+  onLogout
 }) {
   const viewTitles = {
     dashboard: 'Dashboard & Buku Kas',
@@ -62,29 +69,55 @@ export default function Navbar({
           </button>
 
           <div className="min-w-0">
-            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-tight truncate">
-              {viewTitles[activeView] || 'Dashboard'}
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-tight truncate">
+                {viewTitles[activeView] || 'Dashboard'}
+              </h2>
+              {isAdmin ? (
+                <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shrink-0">
+                  <ShieldCheck className="w-3 h-3" />
+                  Admin Keuangan
+                </span>
+              ) : (
+                <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 shrink-0">
+                  <Eye className="w-3 h-3 text-slate-400" />
+                  Read-Only
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
               <span>Periode: <strong className="text-slate-800 dark:text-slate-200">{selectedYear === 'all' ? 'Semua Tahun' : `Tahun ${selectedYear}`}</strong></span>
               <span>•</span>
-              <span className="hidden sm:inline text-blue-600 dark:text-cyan-400 font-semibold">Live Excel Sync</span>
+              <span className="hidden sm:inline text-blue-600 dark:text-cyan-400 font-semibold">PUK PT. SAI</span>
             </div>
           </div>
         </div>
 
         {/* Right: Actions & Theme Toggle */}
         <div className="flex items-center gap-2 sm:gap-2.5">
-          {/* 1. Tambah Bulan Button */}
-          <button
-            onClick={onOpenAddMonthModal}
-            className="inline-flex items-center justify-center gap-2 h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20 transition active:scale-95 shrink-0"
-          >
-            <Plus className="w-4 h-4 shrink-0" />
-            <span className="hidden sm:inline">Tambah Bulan</span>
-          </button>
+          {/* Admin Editing Actions (Tambah Bulan & Ganti File) */}
+          {isAdmin && (
+            <>
+              <button
+                onClick={onOpenAddMonthModal}
+                className="inline-flex items-center justify-center gap-2 h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20 transition active:scale-95 shrink-0"
+              >
+                <Plus className="w-4 h-4 shrink-0" />
+                <span className="hidden sm:inline">Tambah Bulan</span>
+              </button>
 
-          {/* 2. Unduh Excel Dialog Trigger */}
+              <button
+                onClick={onOpenUploadModal}
+                title="Upload atau ganti file Excel"
+                className="inline-flex items-center justify-center gap-2 h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 transition active:scale-95 shrink-0"
+              >
+                <Upload className="w-4 h-4 shrink-0" />
+                <span className="hidden xl:inline">Ganti File</span>
+              </button>
+            </>
+          )}
+
+          {/* Unduh Excel Dialog Trigger (Available for Public & Admin) */}
           <button
             onClick={onOpenDownloadModal}
             title="Download file Excel dengan nama kustom"
@@ -94,17 +127,28 @@ export default function Navbar({
             <span className="hidden sm:inline">Unduh Excel</span>
           </button>
 
-          {/* 3. Upload / Ganti File Button */}
-          <button
-            onClick={onOpenUploadModal}
-            title="Upload atau ganti file Excel"
-            className="inline-flex items-center justify-center gap-2 h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 transition active:scale-95 shrink-0"
-          >
-            <Upload className="w-4 h-4 shrink-0" />
-            <span className="hidden xl:inline">Ganti File</span>
-          </button>
+          {/* Login / Logout Button */}
+          {isAdmin ? (
+            <button
+              onClick={onLogout}
+              title="Keluar dari sesi Administrator"
+              className="inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-xl text-xs sm:text-sm font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800/60 transition active:scale-95 shrink-0"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Logout</span>
+            </button>
+          ) : (
+            <button
+              onClick={onOpenLoginModal}
+              title="Login sebagai Admin untuk menginput atau mengubah data keuangan"
+              className="inline-flex items-center justify-center gap-1.5 h-10 px-3 sm:px-3.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-sm shadow-emerald-500/20 transition active:scale-95 shrink-0"
+            >
+              <Lock className="w-4 h-4" />
+              <span className="hidden sm:inline">Login Admin</span>
+            </button>
+          )}
 
-          {/* 4. Theme Toggle Button */}
+          {/* Theme Toggle Button */}
           <button
             onClick={onToggleTheme}
             title={isDark ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}

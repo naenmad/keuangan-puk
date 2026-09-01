@@ -14,7 +14,7 @@ import {
   Bot
 } from 'lucide-react';
 
-import { CATEGORIES } from './data/defaultData';
+import { CATEGORIES, DEFAULT_MONTHLY_SEED } from './data/defaultData';
 import { recalculateAllMonths, formatRp } from './utils/formatters';
 import { parseExcelFile } from './utils/excelParser';
 import { exportAndDownloadExcel } from './utils/excelGenerator';
@@ -22,8 +22,11 @@ import {
   saveToLocalStorage,
   loadFromLocalStorage,
   getActiveFileName,
-  setActiveFileName
+  setActiveFileName,
+  fetchFromCloudKV,
+  saveToCloudKV
 } from './utils/fileSystemSync';
+import { isAdminUser, logoutAdmin } from './utils/auth';
 
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
@@ -37,12 +40,21 @@ import DownloadDialogModal from './components/DownloadDialogModal';
 import AIAnalysisSection from './components/AIAnalysisSection';
 import RekapPemasukanTable from './components/RekapPemasukanTable';
 import RekapKategoriTable from './components/RekapKategoriTable';
+import LoginModal from './components/LoginModal';
 import Toast from './components/Toast';
 
 export default function App() {
-  const [monthlyData, setMonthlyData] = useState([]);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [fileName, setFileName] = useState('Laporan_Keuangan_PUK.xlsx');
+  const [isAdmin, setIsAdmin] = useState(() => isAdminUser());
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [monthlyData, setMonthlyData] = useState(() => {
+    const saved = loadFromLocalStorage();
+    if (saved && Array.isArray(saved) && saved.length > 0) {
+      return recalculateAllMonths(saved);
+    }
+    return recalculateAllMonths(DEFAULT_MONTHLY_SEED);
+  });
+  const [isLoaded, setIsLoaded] = useState(true);
+  const [fileName, setFileName] = useState(() => getActiveFileName() || 'Laporan_Keuangan_PUK.xlsx');
   const [selectedYear, setSelectedYear] = useState('all');
   const [activeView, setActiveView] = useState('dashboard'); // 'dashboard' | 'ai_analysis' | 'rekap_pemasukan' | 'rekap_kategori' | 'transaksi'
   const [isDirty, setIsDirty] = useState(false);
@@ -130,24 +142,33 @@ export default function App() {
     }
   }, [isDark]);
 
-  // Try loading from localStorage on startup
+  // Fetch latest data from Vercel KV cloud on startup
   useEffect(() => {
-    const saved = loadFromLocalStorage();
-    if (saved && Array.isArray(saved) && saved.length > 0) {
-      setMonthlyData(recalculateAllMonths(saved));
-      setIsLoaded(true);
-      setFileName(getActiveFileName() || 'Laporan_Keuangan_PUK.xlsx');
-      showToast('Data sesi sebelumnya berhasil dimuat dari browser.', 'info');
-    }
+    fetchFromCloudKV().then(res => {
+      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+        setMonthlyData(recalculateAllMonths(res.data));
+        if (res.fileName) setFileName(res.fileName);
+      }
+    });
   }, []);
 
-  // Save to localStorage whenever data changes
+  // Save to localStorage & Vercel KV whenever data changes
   const updateData = useCallback((newData) => {
     const recalculated = recalculateAllMonths(newData);
     setMonthlyData(recalculated);
     setIsDirty(true);
     saveToLocalStorage(recalculated);
-  }, []);
+
+    if (isAdminUser()) {
+      saveToCloudKV(recalculated, fileName).catch(() => {});
+    }
+  }, [fileName]);
+
+  const handleLogout = () => {
+    logoutAdmin();
+    setIsAdmin(false);
+    showToast('Sesi Admin berakhir. Mode Read-Only aktif.', 'info');
+  };
 
   // Handle File Upload
   const handleFileUploaded = async (file) => {
@@ -158,6 +179,11 @@ export default function App() {
     setActiveFileName(file.name);
     setIsDirty(false);
     saveToLocalStorage(parsed);
+
+    if (isAdminUser()) {
+      saveToCloudKV(parsed, file.name).catch(() => {});
+    }
+    setIsUploadModalOpen(false);
     showToast(`File "${file.name}" berhasil dimuat. ${parsed.length} periode bulan terbaca.`, 'success');
   };
 
@@ -311,6 +337,9 @@ export default function App() {
               sidebarMode={sidebarMode}
               onToggleSidebarMode={handleToggleSidebarMode}
               onToggleSidebarVisibility={handleToggleSidebarVisibility}
+              isAdmin={isAdmin}
+              onOpenLoginModal={() => setIsLoginModalOpen(true)}
+              onLogout={handleLogout}
             />
 
             {/* Main Content Area */}
@@ -335,6 +364,7 @@ export default function App() {
                     onEditMonth={month => setEditingMonth(month)}
                     onDeleteMonth={handleDeleteMonth}
                     onOpenAddMonthModal={() => setIsAddMonthModalOpen(true)}
+                    isAdmin={isAdmin}
                   />
                 </>
               )}
@@ -631,6 +661,16 @@ export default function App() {
           onClose={() => setToast(null)}
         />
       )}
+
+      {/* Admin Login Modal */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onLoginSuccess={() => {
+          setIsAdmin(true);
+          showToast('Selamat datang, Admin Keuangan! Hak akses edit aktif.', 'success');
+        }}
+      />
     </div>
   );
 }

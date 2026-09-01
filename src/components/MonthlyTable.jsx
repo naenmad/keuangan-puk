@@ -20,7 +20,8 @@ export default function MonthlyTable({
   selectedYear,
   onEditMonth,
   onDeleteMonth,
-  onOpenAddMonthModal
+  onOpenAddMonthModal,
+  isAdmin = false
 }) {
   const [expandedRows, setExpandedRows] = useState({});
   const [pageSize, setPageSize] = useState(10);
@@ -100,14 +101,16 @@ export default function MonthlyTable({
             </select>
           </div>
 
-          {/* Add New Month Button */}
-          <button
-            onClick={onOpenAddMonthModal}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/20 transition-all active:scale-95"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Tambah Bulan</span>
-          </button>
+          {/* Add New Month Button (Admin Only) */}
+          {isAdmin && (
+            <button
+              onClick={onOpenAddMonthModal}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/20 transition-all active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tambah Bulan</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -124,13 +127,13 @@ export default function MonthlyTable({
               <th className="py-4 px-4 text-right">Total Pengeluaran</th>
               <th className="py-4 px-4 text-right">Saldo Akhir</th>
               <th className="py-4 px-4 text-right">Surplus / Defisit</th>
-              <th className="py-4 px-4 text-center">Aksi Edit</th>
+              {isAdmin && <th className="py-4 px-4 text-center">Aksi Edit</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 font-medium">
             {paginatedData.length === 0 ? (
               <tr>
-                <td colSpan={9} className="text-center py-12 text-slate-400 font-medium text-sm">
+                <td colSpan={isAdmin ? 9 : 8} className="text-center py-12 text-slate-400 font-medium text-sm">
                   Tidak ada data untuk filter tahun {selectedYear}.
                 </td>
               </tr>
@@ -212,45 +215,49 @@ export default function MonthlyTable({
                         </span>
                       </td>
 
-                      {/* Actions */}
-                      <td className="py-3.5 px-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            onClick={() => onEditMonth(d)}
-                            title="Edit data bulan ini"
-                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-600 text-blue-600 dark:text-cyan-400 hover:text-white border border-blue-200 dark:border-blue-500/20 transition-all font-semibold text-xs active:scale-95 shadow-sm"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                            <span>Edit</span>
-                          </button>
-                          <button
-                            onClick={() => onDeleteMonth(d?.period)}
-                            title="Hapus periode bulan ini"
-                            className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-600 text-rose-600 dark:text-rose-400 hover:text-white border border-rose-200 dark:border-rose-500/20 transition-all active:scale-95"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
+                      {/* Actions (Admin Only) */}
+                      {isAdmin && (
+                        <td className="py-3.5 px-4 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => onEditMonth(d)}
+                              title="Edit data bulan ini"
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-600 text-blue-600 dark:text-cyan-400 hover:text-white border border-blue-200 dark:border-blue-500/20 transition-all font-semibold text-xs active:scale-95 shadow-sm"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              onClick={() => onDeleteMonth(d?.period)}
+                              title="Hapus periode bulan ini"
+                              className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-600 text-rose-600 dark:text-rose-400 hover:text-white border border-rose-200 dark:border-rose-500/20 transition-all active:scale-95"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
 
                     {/* Expanded Detail Sub-row */}
                     {isExpanded && (
                       <tr className="bg-slate-50 dark:bg-slate-900/40 border-b border-slate-200 dark:border-slate-800">
-                        <td colSpan={9} className="p-4 sm:px-8">
+                        <td colSpan={isAdmin ? 9 : 8} className="p-4 sm:px-8">
                           <div className="bg-white dark:bg-[#0e1626] rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
                             <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-200 dark:border-slate-800">
                               <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-blue-600 dark:text-cyan-400 flex items-center gap-1.5">
                                 <Sparkles className="w-4 h-4 text-amber-500" />
                                 Rincian Transaksi Pengeluaran ({d?.month} {d?.year})
                               </h4>
-                              <button
-                                onClick={() => onEditMonth(d)}
-                                className="text-xs sm:text-sm text-blue-600 dark:text-cyan-400 hover:underline font-bold flex items-center gap-1"
-                              >
-                                <span>Edit Rincian Ini</span>
-                                <ArrowRight className="w-3 h-3" />
-                              </button>
+                              {isAdmin && (
+                                <button
+                                  onClick={() => onEditMonth(d)}
+                                  className="text-xs sm:text-sm text-blue-600 dark:text-cyan-400 hover:underline font-bold flex items-center gap-1"
+                                >
+                                  <span>Edit Rincian Ini</span>
+                                  <ArrowRight className="w-3 h-3" />
+                                </button>
+                              )}
                             </div>
 
                             {(!d?.expenses || d.expenses.length === 0) ? (
