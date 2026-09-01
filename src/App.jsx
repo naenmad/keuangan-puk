@@ -142,6 +142,26 @@ export default function App() {
     }
   }, [isDark]);
 
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleRefreshCloud = useCallback(async () => {
+    setIsSyncing(true);
+    try {
+      const res = await fetchFromCloudKV();
+      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+        setMonthlyData(recalculateAllMonths(res.data));
+        if (res.fileName) setFileName(res.fileName);
+        showToast('Data keuangan cloud berhasil disinkronkan.', 'success');
+      } else {
+        showToast('Data keuangan sudah versi terbaru.', 'info');
+      }
+    } catch (e) {
+      showToast('Gagal sinkron data cloud.', 'error');
+    } finally {
+      setIsSyncing(false);
+    }
+  }, []);
+
   // Fetch latest data from Vercel KV cloud on startup
   useEffect(() => {
     fetchFromCloudKV().then(res => {
@@ -340,6 +360,8 @@ export default function App() {
               isAdmin={isAdmin}
               onOpenLoginModal={() => setIsLoginModalOpen(true)}
               onLogout={handleLogout}
+              onRefreshCloud={handleRefreshCloud}
+              isSyncing={isSyncing}
             />
 
             {/* Main Content Area */}

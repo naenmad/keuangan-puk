@@ -60,7 +60,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }) {
           </div>
 
           <p className="text-xs text-slate-600 dark:text-slate-300 mt-3 mb-5 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60">
-            🔒 Mode Publik saat ini adalah <strong>Read-Only</strong>. Masukkan password admin untuk membuka formulir input transaksi, upload Excel, edit pos pengeluaran, dan simpan ke cloud database.
+            Mode Publik saat ini adalah <strong>Read-Only</strong>. Masukkan password admin untuk membuka formulir input transaksi, upload Excel, edit pos pengeluaran, dan simpan ke cloud database.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
