@@ -6,6 +6,17 @@ const PASSWORD_REDIS_KEY = 'sai:admin:password';
 const UPSTASH_URL = import.meta.env?.VITE_KV_REST_API_URL || 'https://cuddly-yak-216436.upstash.io';
 const UPSTASH_TOKEN = import.meta.env?.VITE_KV_REST_API_TOKEN || 'gQAAAAAAA010AAIgcDIyNjc2MTM0NTNhZjk0MzYxOGVmMDI4MGU3NWIwYzgzYQ';
 
+function sanitizePassword(raw) {
+  if (!raw) return null;
+  let str = String(raw).trim();
+  if (str.startsWith('"') && str.endsWith('"')) {
+    try {
+      str = JSON.parse(str);
+    } catch (e) {}
+  }
+  return str;
+}
+
 export function getAuthToken() {
   try {
     const token = localStorage.getItem(TOKEN_KEY);
@@ -29,12 +40,14 @@ export function isAdminUser() {
 }
 
 export async function loginAdmin(password) {
+  const inputPassword = String(password || '').trim();
+
   // 1. Try Vercel Serverless API first
   try {
     const res = await fetch('/api/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'login', password })
+      body: JSON.stringify({ action: 'login', password: inputPassword })
     });
 
     if (res.ok) {
@@ -50,25 +63,25 @@ export async function loginAdmin(password) {
     }
   } catch (e) {}
 
-  // 2. Direct Upstash REST API Check
+  // 2. Direct Upstash REST API Check (Single source of truth)
   try {
-    let cloudPassword = 'admin123';
+    let cloudPassword = null;
     if (UPSTASH_URL && UPSTASH_TOKEN) {
       const res = await fetch(`${UPSTASH_URL}/get/${encodeURIComponent(PASSWORD_REDIS_KEY)}`, {
         headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` }
       });
       if (res.ok) {
         const json = await res.json();
-        if (json && json.result) {
-          cloudPassword = json.result;
+        if (json && json.result !== null && json.result !== undefined) {
+          cloudPassword = sanitizePassword(json.result);
         }
       }
     }
 
-    const localPw = localStorage.getItem(LOCAL_PW_KEY);
-    const validPassword = localPw || cloudPassword || 'admin123';
+    const localPw = sanitizePassword(localStorage.getItem(LOCAL_PW_KEY));
+    const validPassword = cloudPassword || localPw || 'admin123';
 
-    if (password === validPassword || password === 'admin123') {
+    if (inputPassword === validPassword) {
       const mockToken = `admin_neraca_${Date.now()}`;
       const expiryTime = Date.now() + 86400 * 1000;
       localStorage.setItem(TOKEN_KEY, mockToken);
@@ -76,20 +89,24 @@ export async function loginAdmin(password) {
       return { success: true, message: 'Login berhasil sebagai Administrator Keuangan' };
     }
 
-    return { success: false, message: 'Password admin salah' };
+    return { success: false, message: 'Password admin salah. Silakan coba lagi.' };
   } catch (error) {
-    if (password === 'admin123' || password === 'admin') {
+    const localPw = sanitizePassword(localStorage.getItem(LOCAL_PW_KEY)) || 'admin123';
+    if (inputPassword === localPw) {
       const mockToken = `admin_neraca_${Date.now()}`;
       localStorage.setItem(TOKEN_KEY, mockToken);
       localStorage.setItem(EXPIRY_KEY, String(Date.now() + 86400 * 1000));
-      return { success: true, message: 'Login berhasil (Mode Dev)' };
+      return { success: true, message: 'Login berhasil' };
     }
-    return { success: false, message: 'Koneksi gagal atau password salah' };
+    return { success: false, message: 'Password admin salah' };
   }
 }
 
 export async function changeAdminPassword(oldPassword, newPassword) {
-  if (!newPassword || newPassword.length < 4) {
+  const inputOld = String(oldPassword || '').trim();
+  const inputNew = String(newPassword || '').trim();
+
+  if (!inputNew || inputNew.length < 4) {
     return { success: false, message: 'Password baru minimal 4 karakter' };
   }
 
@@ -98,13 +115,13 @@ export async function changeAdminPassword(oldPassword, newPassword) {
     const res = await fetch('/api/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'change_password', oldPassword, newPassword })
+      body: JSON.stringify({ action: 'change_password', oldPassword: inputOld, newPassword: inputNew })
     });
 
     if (res.ok) {
       const result = await res.json();
       if (result.success) {
-        localStorage.setItem(LOCAL_PW_KEY, newPassword);
+        localStorage.setItem(LOCAL_PW_KEY, inputNew);
         return { success: true, message: 'Password admin berhasil diubah!' };
       } else {
         return { success: false, message: result.message || 'Gagal mengubah password' };
@@ -114,23 +131,25 @@ export async function changeAdminPassword(oldPassword, newPassword) {
 
   // 2. Direct Upstash REST API Update
   try {
-    let currentPw = 'admin123';
+    let cloudPassword = null;
     if (UPSTASH_URL && UPSTASH_TOKEN) {
       const getRes = await fetch(`${UPSTASH_URL}/get/${encodeURIComponent(PASSWORD_REDIS_KEY)}`, {
         headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` }
       });
       if (getRes.ok) {
         const json = await getRes.json();
-        if (json && json.result) currentPw = json.result;
+        if (json && json.result !== null && json.result !== undefined) {
+          cloudPassword = sanitizePassword(json.result);
+        }
       }
     }
 
-    const localPw = localStorage.getItem(LOCAL_PW_KEY) || currentPw;
-    if (oldPassword !== localPw && oldPassword !== 'admin123') {
+    const currentPw = cloudPassword || sanitizePassword(localStorage.getItem(LOCAL_PW_KEY)) || 'admin123';
+    if (inputOld !== currentPw) {
       return { success: false, message: 'Password lama tidak sesuai' };
     }
 
-    // Save to Upstash
+    // Save strictly to Upstash
     if (UPSTASH_URL && UPSTASH_TOKEN) {
       await fetch(`${UPSTASH_URL}/set/${encodeURIComponent(PASSWORD_REDIS_KEY)}`, {
         method: 'POST',
@@ -138,12 +157,12 @@ export async function changeAdminPassword(oldPassword, newPassword) {
           Authorization: `Bearer ${UPSTASH_TOKEN}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(newPassword)
+        body: JSON.stringify(inputNew)
       });
     }
 
-    localStorage.setItem(LOCAL_PW_KEY, newPassword);
-    return { success: true, message: 'Password admin berhasil diperbarui di Cloud!' };
+    localStorage.setItem(LOCAL_PW_KEY, inputNew);
+    return { success: true, message: 'Password admin berhasil diperbarui di Cloud Database!' };
   } catch (error) {
     return { success: false, message: 'Gagal memperbarui password di cloud database' };
   }
