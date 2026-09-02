@@ -10,6 +10,7 @@ import {
   PanelLeftOpen,
   Sidebar as SidebarIcon,
   Lock,
+  Key,
   LogOut,
   ShieldCheck,
   Eye,
